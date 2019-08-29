@@ -24,12 +24,25 @@ type ControlCommand struct {
 }
 
 type OperatorJob struct {
-	PipelineId  string     `json:"pipelineId,omitempty"`
-	OperatorId  string     `json:"operatorId,omitempty"`
-	ImageId     string     `json:"imageId,omitempty"`
-	Agent       Agent      `json:"agent,omitempty"`
-	ContainerId string     `json:"containerId,omitempty"`
-	Config      []struct{} `json:"config,omitempty"`
+	PipelineId  string       `json:"pipelineId,omitempty"`
+	OperatorId  string       `json:"operatorId,omitempty"`
+	ImageId     string       `json:"imageId,omitempty"`
+	Agent       Agent        `json:"agent,omitempty"`
+	ContainerId string       `json:"containerId,omitempty"`
+	InputTopics []InputTopic `json:"inputTopics,omitempty"`
+	Config      []struct{}   `json:"config,omitempty"`
+}
+
+type InputTopic struct {
+	Name        string    `json:"name,omitempty"`
+	FilterType  string    `json:"filterType,omitempty"`
+	FilterValue string    `json:"filterValue,omitempty"`
+	Mappings    []Mapping `json:"mappings,omitempty"`
+}
+
+type Mapping struct {
+	Dest   string `json:"dest,omitempty"`
+	Source string `json:"source,omitempty"`
 }
 
 type AgentMessage struct {
