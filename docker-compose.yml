@@ -5,3 +5,12 @@ services:
     ports:
       - 1883:1883
       - 9001:9001
+  test-cc:
+    container_name: test-cc
+    depends_on:
+      - mosquitto
+    build: https://github.com/SENERGY-Platform/test-client-connector.git
+    image: test-cc
+    volumes:
+      - './cc-lib/cc-lib:/usr/src/app/cc-lib'
+      - './cc-lib/test.conf:/usr/src/app/test.conf'
