@@ -31,11 +31,20 @@ func startOperator(command ControlCommand) {
 		}
 		for agentId, agent := range agents {
 			if agent.Active == true {
-				fmt.Println("Trying Agent: " + agent.Id)
-				publishMessage(agents[agentId].Id, string(out))
-				if checkOperatorDeployed(command.Data.OperatorId) {
-					break
+				loops := 0
+				for loops < 3 {
+					fmt.Println("Trying Agent: " + agent.Id)
+					publishMessage(agents[agentId].Id, string(out))
+					if checkOperatorDeployed(command.Data.Config.OperatorId) {
+						break
+					}
+					loops++
+					time.Sleep(5 * time.Second)
 				}
+			} else {
+				fmt.Println("No active agents available, retrying in 10 seconds")
+				time.Sleep(10 * time.Second)
+				startOperator(command)
 			}
 		}
 	} else {
@@ -47,7 +56,7 @@ func checkOperatorDeployed(operatorId string) (created bool) {
 	created = false
 	loops := 0
 	operatorJob := OperatorJob{}
-	for loops < 6 {
+	for loops < 5 {
 		if err := DB().Read("operatorJobs", operatorId, &operatorJob); err != nil {
 			fmt.Println("Could not find job")
 		} else {
@@ -56,14 +65,14 @@ func checkOperatorDeployed(operatorId string) (created bool) {
 			break
 		}
 		loops++
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 	return
 }
 
 func stopOperator(command ControlCommand) {
 	operatorJob := OperatorJob{}
-	if err := DB().Read("operatorJobs", command.Data.OperatorId, &operatorJob); err != nil {
+	if err := DB().Read("operatorJobs", command.Data.Config.OperatorId, &operatorJob); err != nil {
 		fmt.Println("Error", err)
 	}
 	command.Data = operatorJob
@@ -72,7 +81,7 @@ func stopOperator(command ControlCommand) {
 		panic(err)
 	}
 	publishMessage(operatorJob.Agent.Id, string(out))
-	if err := DB().Delete("operatorJobs", command.Data.OperatorId); err != nil {
+	if err := DB().Delete("operatorJobs", command.Data.Config.OperatorId); err != nil {
 		fmt.Println("Error", err)
 	}
 }

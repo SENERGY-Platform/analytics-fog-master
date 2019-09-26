@@ -79,7 +79,7 @@ func processOperatorsCommand(message []byte) {
 		fmt.Println("error:", err)
 	}
 	fmt.Println(op)
-	if err := DB().Write("operatorJobs", op.OperatorId, op); err != nil {
+	if err := DB().Write("operatorJobs", op.Config.OperatorId, op); err != nil {
 		fmt.Println("Error", err)
 	}
 }

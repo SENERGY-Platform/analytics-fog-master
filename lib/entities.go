@@ -24,13 +24,17 @@ type ControlCommand struct {
 }
 
 type OperatorJob struct {
-	PipelineId  string       `json:"pipelineId,omitempty"`
-	OperatorId  string       `json:"operatorId,omitempty"`
 	ImageId     string       `json:"imageId,omitempty"`
 	Agent       Agent        `json:"agent,omitempty"`
 	ContainerId string       `json:"containerId,omitempty"`
 	InputTopics []InputTopic `json:"inputTopics,omitempty"`
-	Config      []struct{}   `json:"config,omitempty"`
+	Config      FogConfig    `json:"config,omitempty"`
+}
+
+type FogConfig struct {
+	PipelineId  string `json:"pipelineId,omitempty"`
+	OutputTopic string `json:"outputTopic,omitempty"`
+	OperatorId  string `json:"operatorId,omitempty"`
 }
 
 type InputTopic struct {
