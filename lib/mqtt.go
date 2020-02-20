@@ -66,13 +66,17 @@ func ConnectMQTTBroker() {
 			panic(token.Error())
 		}
 	}
-
 	client = MQTT.NewClient(connOpts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	} else {
-		fmt.Printf("Connected to %s\n", *server)
+	for {
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			fmt.Printf("Could not connect to %s : %s\n", *server, token.Error())
+			time.Sleep(5 * time.Second)
+		} else {
+			fmt.Printf("Connected to %s\n", *server)
+			break
+		}
 	}
+
 }
 
 func publishMessage(topic string, message string) {
