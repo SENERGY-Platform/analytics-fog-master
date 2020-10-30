@@ -19,13 +19,15 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 func processMessage(message MQTT.Message) {
-	switch message.Topic() {
+	subTopic := strings.TrimPrefix(message.Topic(), TopicPrefix)
+	switch subTopic {
 	case "control":
 		processControlCommand(message.Payload())
 	case "agents":
