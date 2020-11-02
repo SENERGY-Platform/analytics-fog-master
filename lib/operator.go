@@ -29,7 +29,7 @@ func startOperator(command ControlCommand) {
 		if err != nil {
 			panic(err)
 		}
-		activeAgents := []Agent{}
+		var activeAgents []Agent
 		for _, agent := range agents {
 			if agent.Active {
 				activeAgents = append(activeAgents, agent)
@@ -39,17 +39,18 @@ func startOperator(command ControlCommand) {
 			fmt.Println("No active agents available, retrying in 10 seconds")
 			time.Sleep(10 * time.Second)
 			startOperator(command)
-		}
-		for agentId, agent := range activeAgents {
-			loops := 0
-			for loops < 3 {
-				fmt.Println("Trying Agent: " + agent.Id)
-				publishMessage(agents[agentId].Id, string(out))
-				if checkOperatorDeployed(command.Data.Config.OperatorId) {
-					break
+		} else {
+			for agentId, agent := range activeAgents {
+				loops := 0
+				for loops < 3 {
+					fmt.Println("Trying Agent: " + agent.Id)
+					publishMessage(agents[agentId].Id, string(out))
+					if checkOperatorDeployed(command.Data.Config.OperatorId) {
+						break
+					}
+					loops++
+					time.Sleep(5 * time.Second)
 				}
-				loops++
-				time.Sleep(5 * time.Second)
 			}
 		}
 	} else {
