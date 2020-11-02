@@ -26,7 +26,7 @@ import (
 )
 
 func processMessage(message MQTT.Message) {
-	subTopic := strings.TrimPrefix(message.Topic(), TopicPrefix)
+	subTopic := strings.TrimPrefix(message.Topic(), topicPrefix)
 	switch subTopic {
 	case "control":
 		processControlCommand(message.Payload())

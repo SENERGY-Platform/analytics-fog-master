@@ -31,8 +31,6 @@ var client MQTT.Client
 var qos *int
 var retained *bool
 
-var topicPrefix = GetEnv("BROKER_TOPIC_PREFIX", "fog/")
-
 func ConnectMQTTBroker() {
 	//MQTT.DEBUG = log.New(os.Stdout, "", 0)
 	//MQTT.ERROR = log.New(os.Stdout, "", 0)
