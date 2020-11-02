@@ -16,4 +16,7 @@
 
 package lib
 
-var topicPrefix = GetEnv("BROKER_TOPIC_PREFIX", "fog/")
+const TopicPrefix = "fog/"
+const AgentsTopic = TopicPrefix + "agents"
+const ControlTopic = TopicPrefix + "control"
+const OperatorsTopic = TopicPrefix + "operators"

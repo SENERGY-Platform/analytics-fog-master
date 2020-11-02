@@ -25,7 +25,7 @@ import (
 func CheckAgents() {
 	for {
 		agents := GetAllAgents()
-		out, err := json.Marshal(ControlCommand{Command: "ping"})
+		out, err := json.Marshal(ControlCommand{Command: "ping", Data: OperatorJob{Agent: Agent{Updated: time.Now()}}})
 		command := string(out)
 		if err != nil {
 			panic(err)
@@ -42,7 +42,7 @@ func CheckAgents() {
 }
 
 func checkAgent(id string, command *string) {
-	publishMessage(id, *command)
+	publishMessage(TopicPrefix+id, *command)
 	agent := Agent{}
 	for i := 0; i < 3; i++ {
 		time.Sleep(5 * time.Second)
