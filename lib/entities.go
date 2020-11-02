@@ -59,5 +59,3 @@ type Agent struct {
 	Updated time.Time `json:"updated,omitempty"`
 	Active  bool      `json:"active,omitempty"`
 }
-
-const TopicPrefix = "fog/"

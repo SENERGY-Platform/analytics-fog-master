@@ -31,6 +31,8 @@ var client MQTT.Client
 var qos *int
 var retained *bool
 
+var topicPrefix = GetEnv("BROKER_TOPIC_PREFIX", "fog/")
+
 func ConnectMQTTBroker() {
 	//MQTT.DEBUG = log.New(os.Stdout, "", 0)
 	//MQTT.ERROR = log.New(os.Stdout, "", 0)
@@ -40,18 +42,18 @@ func ConnectMQTTBroker() {
 	server := flag.String("server", GetEnv("BROKER_ADDRESS", "tcp://127.0.0.1:1883"), "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
 
 	topics := map[string]byte{
-		TopicPrefix + "control":   byte(0),
-		TopicPrefix + "agents":    byte(0),
-		TopicPrefix + "operators": byte(0),
+		topicPrefix + "control":   byte(0),
+		topicPrefix + "agents":    byte(0),
+		topicPrefix + "operators": byte(0),
 	}
 	qos = flag.Int("qos", 0, "The QoS to subscribe to messages at")
 	retained = flag.Bool("retained", false, "Are the messages sent with the retained flag")
-	clientid := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
+	clientId := flag.String("clientid", hostname+strconv.Itoa(time.Now().Second()), "A clientid for the connection")
 	username := flag.String("username", "", "A username to authenticate to the MQTT server")
 	password := flag.String("password", "", "Password to match username")
 	flag.Parse()
 
-	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientID(*clientid).SetCleanSession(true)
+	connOpts := MQTT.NewClientOptions().AddBroker(*server).SetClientID(*clientId).SetCleanSession(true)
 	if *username != "" {
 		connOpts.SetUsername(*username)
 		if *password != "" {
@@ -80,7 +82,7 @@ func ConnectMQTTBroker() {
 }
 
 func publishMessage(topic string, message string) {
-	client.Publish(TopicPrefix+topic, byte(*qos), *retained, message)
+	client.Publish(topicPrefix+topic, byte(*qos), *retained, message)
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
