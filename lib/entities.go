@@ -32,9 +32,10 @@ type OperatorJob struct {
 }
 
 type FogConfig struct {
-	PipelineId  string `json:"pipelineId,omitempty"`
-	OutputTopic string `json:"outputTopic,omitempty"`
-	OperatorId  string `json:"operatorId,omitempty"`
+	PipelineId     string `json:"pipelineId,omitempty"`
+	OutputTopic    string `json:"outputTopic,omitempty"`
+	OperatorId     string `json:"operatorId,omitempty"`
+	BaseOperatorId string `json:"baseOperatorId,omitempty"`
 }
 
 type InputTopic struct {
