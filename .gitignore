@@ -2,3 +2,4 @@
 .idea
 test_data
 cc-lib
+docker-compose.local.yml
