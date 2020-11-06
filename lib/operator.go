@@ -64,13 +64,16 @@ func checkOperatorDeployed(operatorId string) (created bool) {
 	operatorJob := OperatorJob{}
 	for loops < 5 {
 		if err := DB().Read("operatorJobs", operatorId, &operatorJob); err != nil {
-			fmt.Println("Could not find job")
+
 		} else {
-			fmt.Println("Did find job")
+			if operatorJob.Response == "Error" {
+				fmt.Println(operatorJob.ResponseMessage)
+			}
 			created = true
 			break
 		}
 		loops++
+		fmt.Println("Could not find job in time")
 		time.Sleep(10 * time.Second)
 	}
 	return
