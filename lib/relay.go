@@ -78,7 +78,7 @@ func processOperatorsCommand(message []byte) {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	if err := DB().Write("operatorJobs", op.Config.OperatorId, op); err != nil {
+	if err := DB().Write("operatorJobs", op.Config.OperatorId+"-"+op.Config.PipelineId, op); err != nil {
 		fmt.Println("Error", err)
 	}
 }

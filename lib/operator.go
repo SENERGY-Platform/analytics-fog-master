@@ -45,7 +45,7 @@ func startOperator(command ControlCommand) {
 				for loops < 3 {
 					fmt.Println("Trying Agent: " + agent.Id)
 					publishMessage(TopicPrefix+agents[agentId].Id, string(out))
-					if checkOperatorDeployed(command.Data.Config.OperatorId) {
+					if checkOperatorDeployed(command.Data.Config.OperatorId + "-" + command.Data.Config.PipelineId) {
 						break
 					}
 					loops++
@@ -81,7 +81,7 @@ func checkOperatorDeployed(operatorId string) (created bool) {
 
 func stopOperator(command ControlCommand) {
 	operatorJob := OperatorJob{}
-	if err := DB().Read("operatorJobs", command.Data.Config.OperatorId, &operatorJob); err != nil {
+	if err := DB().Read("operatorJobs", command.Data.Config.OperatorId+"-"+command.Data.Config.PipelineId, &operatorJob); err != nil {
 		fmt.Println("Error", err)
 	}
 	command.Data = operatorJob
@@ -90,7 +90,7 @@ func stopOperator(command ControlCommand) {
 		panic(err)
 	}
 	publishMessage(TopicPrefix+operatorJob.Agent.Id, string(out))
-	if err := DB().Delete("operatorJobs", command.Data.Config.OperatorId); err != nil {
+	if err := DB().Delete("operatorJobs", command.Data.Config.OperatorId+"-"+command.Data.Config.PipelineId); err != nil {
 		fmt.Println("Error", err)
 	}
 }
