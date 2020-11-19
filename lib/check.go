@@ -42,7 +42,7 @@ func CheckAgents() {
 }
 
 func checkAgent(id string, command *string) {
-	publishMessage(TopicPrefix+id, *command)
+	publishMessage(TopicPrefix+id, *command, 1)
 	agent := Agent{}
 	for i := 0; i < 3; i++ {
 		time.Sleep(5 * time.Second)

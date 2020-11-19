@@ -44,7 +44,7 @@ func startOperator(command ControlCommand) {
 				loops := 0
 				for loops < 3 {
 					fmt.Println("Trying Agent: " + agent.Id)
-					publishMessage(TopicPrefix+agents[agentId].Id, string(out))
+					publishMessage(TopicPrefix+agents[agentId].Id, string(out), 2)
 					if checkOperatorDeployed(command.Data.Config.OperatorId + "-" + command.Data.Config.PipelineId) {
 						break
 					}
@@ -89,7 +89,7 @@ func stopOperator(command ControlCommand) {
 	if err != nil {
 		panic(err)
 	}
-	publishMessage(TopicPrefix+operatorJob.Agent.Id, string(out))
+	publishMessage(TopicPrefix+operatorJob.Agent.Id, string(out), 2)
 	if err := DB().Delete("operatorJobs", command.Data.Config.OperatorId+"-"+command.Data.Config.PipelineId); err != nil {
 		fmt.Println("Error", err)
 	}
