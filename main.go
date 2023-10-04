@@ -17,7 +17,7 @@
 package main
 
 import (
-	"fog_master/lib"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib"
 	"os"
 	"os/signal"
 	"syscall"
