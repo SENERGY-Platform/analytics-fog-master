@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-package lib
+package master
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/entities"
+
 	"time"
 )
 
-func startOperator(command ControlCommand) {
-	agents := GetAllAgents()
+func (master *Master) StartOperator(command entities.ControlCommand) {
+	agents := master.DB.GetAllAgents()
 	if len(agents) > 0 {
 		out, err := json.Marshal(command)
 		if err != nil {
 			panic(err)
 		}
-		var activeAgents []Agent
+		var activeAgents []entities.Agent
 		for _, agent := range agents {
 			if agent.Active {
 				activeAgents = append(activeAgents, agent)
@@ -38,14 +41,14 @@ func startOperator(command ControlCommand) {
 		if len(activeAgents) == 0 {
 			fmt.Println("No active agents available, retrying in 10 seconds")
 			time.Sleep(10 * time.Second)
-			startOperator(command)
+			master.StartOperator(command)
 		} else {
 			for agentId, agent := range activeAgents {
 				loops := 0
 				for loops < 3 {
 					fmt.Println("Trying Agent: " + agent.Id)
-					publishMessage(TopicPrefix+agents[agentId].Id, string(out), 2)
-					if checkOperatorDeployed(command.Data.Config.OperatorId + "-" + command.Data.Config.PipelineId) {
+					master.publishMessage(constants.TopicPrefix+agents[agentId].Id, string(out), 2)
+					if master.checkOperatorDeployed(command.Data.Config.OperatorId + "-" + command.Data.Config.PipelineId) {
 						break
 					}
 					loops++
@@ -58,12 +61,12 @@ func startOperator(command ControlCommand) {
 	}
 }
 
-func checkOperatorDeployed(operatorId string) (created bool) {
+func (master *Master) checkOperatorDeployed(operatorId string) (created bool) {
 	created = false
 	loops := 0
-	operatorJob := OperatorJob{}
+	operatorJob := entities.OperatorJob{}
 	for loops < 5 {
-		if err := DB().Read("operatorJobs", operatorId, &operatorJob); err != nil {
+		if err := master.DB.GetOperator(operatorId, &operatorJob); err != nil {
 
 		} else {
 			if operatorJob.Response == "Error" {
@@ -79,18 +82,25 @@ func checkOperatorDeployed(operatorId string) (created bool) {
 	return
 }
 
-func stopOperator(command ControlCommand) {
-	operatorJob := OperatorJob{}
-	if err := DB().Read("operatorJobs", command.Data.Config.OperatorId+"-"+command.Data.Config.PipelineId, &operatorJob); err != nil {
-		fmt.Println("Error", err)
+func (master *Master) StopOperator(command entities.ControlCommand) error {
+	operatorJob := entities.OperatorJob{}
+	if err := master.DB.GetOperator(command.Data.Config.OperatorId, &operatorJob); err != nil {
+		return err
 	}
 	command.Data = operatorJob
 	out, err := json.Marshal(command)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	publishMessage(TopicPrefix+operatorJob.Agent.Id, string(out), 2)
-	if err := DB().Delete("operatorJobs", command.Data.Config.OperatorId+"-"+command.Data.Config.PipelineId); err != nil {
-		fmt.Println("Error", err)
+	master.publishMessage(constants.TopicPrefix+operatorJob.Agent.Id, string(out), 2)
+
+	if err := master.DB.DeleteOperator(command.Data.Config.OperatorId); err != nil {
+		return err
 	}
+
+	return nil
+}
+
+func (master *Master) publishMessage(topic string, message string, qos int) {
+	master.Client.PublishMessage(topic, message, qos)
 }

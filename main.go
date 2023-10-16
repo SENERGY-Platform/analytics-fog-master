@@ -17,18 +17,39 @@
 package main
 
 import (
-	"github.com/SENERGY-Platform/analytics-fog-master/lib"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
+
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
+	config, err := config.NewConfig("")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	database, err := db.NewFileDatabase()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	mqttClient := mqtt.NewMQTTClient(config.Broker)
+	master := master.NewMaster(mqttClient, database)
+	relayController := relay.NewRelayController(master)
+
+	mqttClient.ConnectMQTTBroker(relayController)
+
+	go master.CheckAgents()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	lib.InitDB()
-	lib.ConnectMQTTBroker()
-	go lib.CheckAgents()
-	defer lib.CloseConnection()
+	defer mqttClient.CloseConnection()
 	<-c
 }
