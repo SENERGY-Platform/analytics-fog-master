@@ -17,11 +17,9 @@
 package relay
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/entities"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -45,47 +43,6 @@ func (relay *RelayController) ProcessMessage(message MQTT.Message) {
 		relay.processAgentsCommand(message.Payload())
 	case constants.OperatorsTopic:
 		relay.processOperatorsCommand(message.Payload())
-	}
-}
-
-func (relay *RelayController) processControlCommand(message []byte) {
-	command := entities.ControlCommand{}
-	err := json.Unmarshal(message, &command)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	if command.Command == "startOperator" {
-		relay.Master.StartOperator(command)
-	}
-	if command.Command == "stopOperator" {
-		relay.Master.StopOperator(command)
-	}
-}
-
-func (relay *RelayController) processAgentsCommand(message []byte) {
-	agentMessage := entities.AgentMessage{}
-	err := json.Unmarshal(message, &agentMessage)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	switch agentMessage.Type {
-	case "register":
-		fmt.Println("Registering Agent")
-		err = relay.Master.RegisterAgent(agentMessage.Conf.Id, agentMessage.Conf)
-	case "pong":
-		fmt.Println("Received Pong: " + agentMessage.Conf.Id)
-		err = relay.Master.PongAgent(agentMessage.Conf.Id, agentMessage.Conf)
-	}
-}
-
-func (relay *RelayController) processOperatorsCommand(message []byte) {
-	op := entities.OperatorJob{}
-	err := json.Unmarshal(message, &op)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	if err := relay.Master.DB.SaveOperator(op); err != nil {
-		fmt.Println("Error", err)
 	}
 }
 

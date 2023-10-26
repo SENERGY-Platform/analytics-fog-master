@@ -19,14 +19,14 @@ package mqtt
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
-	"log"
+	//"log"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -44,11 +44,12 @@ func NewMQTTClient(brokerConfig config.BrokerConfig) *MQTTClient {
 }
 
 func (client *MQTTClient) ConnectMQTTBroker(relay RelayController) {
-	MQTT.DEBUG = log.New(os.Stdout, "", 0)
+	//MQTT.DEBUG = log.New(os.Stdout, "", 0)
 
 	hostname, _ := os.Hostname()
 
 	server := flag.String("server", "tcp://"+client.Broker.Host+":"+client.Broker.Port, "The full url of the MQTT server to connect to ex: tcp://127.0.0.1:1883")
+	logging.Logger.Debug("Try to connect to: ", *server)
 
 	topics := map[string]byte{
 		constants.ControlTopic:   byte(2),
@@ -79,10 +80,10 @@ func (client *MQTTClient) ConnectMQTTBroker(relay RelayController) {
 	client.Client = MQTT.NewClient(connOpts)
 	for {
 		if token := client.Client.Connect(); token.Wait() && token.Error() != nil {
-			fmt.Printf("Could not connect to %s : %s\n", *server, token.Error())
+			logging.Logger.Error("Could not connect to %s : %s\n", *server, token.Error())
 			time.Sleep(5 * time.Second)
 		} else {
-			fmt.Printf("Connected to %s\n", *server)
+			logging.Logger.Debugf("Connected to %s\n", *server)
 			break
 		}
 	}

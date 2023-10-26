@@ -18,5 +18,11 @@ package constants
 
 const TopicPrefix = "fog/"
 const AgentsTopic = TopicPrefix + "agents"
+
+// TODO control topic per user id control/[USERID] this hsould be done at the connector though
+// login at keycloak to get user id
 const ControlTopic = TopicPrefix + "control"
 const OperatorsTopic = TopicPrefix + "operators"
+
+const OperatorDeployedSuccessfully = "OK"
+const OperatorDeployedError = "Error"

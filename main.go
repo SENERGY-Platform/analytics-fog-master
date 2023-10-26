@@ -17,39 +17,72 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"log"
+	"os"
+	"syscall"
+
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
-
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	ec := 0
+	defer func() {
+		os.Exit(ec)
+	}()
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Print("Error loading .env file")
+	}
+
 	config, err := config.NewConfig("")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	database, err := db.NewFileDatabase()
+	logFile, err := logging.InitLogger(config.Logger)
 	if err != nil {
-		fmt.Println(err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		var logFileError *srv_base.LogFileError
+		if errors.As(err, &logFileError) {
+			ec = 1
+			return
+		}
+	}
+	if logFile != nil {
+		defer logFile.Close()
 	}
 
+	database, err := db.NewFileDatabase(config.DataDir)
+	if err != nil {
+		logging.Logger.Error(err)
+	}
+
+	watchdog := srv_base.NewWatchdog(logging.Logger, syscall.SIGINT, syscall.SIGTERM)
+
 	mqttClient := mqtt.NewMQTTClient(config.Broker)
-	master := master.NewMaster(mqttClient, database)
+	master := master.NewMaster(mqttClient, database, config.StartOperatorConfig)
 	relayController := relay.NewRelayController(master)
 
 	mqttClient.ConnectMQTTBroker(relayController)
 
 	go master.CheckAgents()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	defer mqttClient.CloseConnection()
-	<-c
+	watchdog.RegisterStopFunc(func() error {
+		mqttClient.CloseConnection()
+		return nil
+	})
+
+	watchdog.Start()
+
+	ec = watchdog.Join()
 }

@@ -20,17 +20,20 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/entities"
+	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
+	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
+
 	scribble "github.com/nanobox-io/golang-scribble"
 )
+
+// TODO https://stackoverflow.com/questions/29981050/concurrent-writing-to-a-file
 
 type FileDatabase struct {
 	DB *scribble.Driver
 }
 
-func NewFileDatabase() (*FileDatabase, error) {
-	dir := "./data"
-	fileDB, err := scribble.New(dir, nil)
+func NewFileDatabase(dataDir string) (*FileDatabase, error) {
+	fileDB, err := scribble.New(dataDir, nil)
 	if err != nil {
 		fmt.Println("Error", err)
 		return nil, err
@@ -42,13 +45,13 @@ func NewFileDatabase() (*FileDatabase, error) {
 	return db, nil
 }
 
-func (db *FileDatabase) GetAllAgents() (agents []entities.Agent) {
+func (db *FileDatabase) GetAllAgents() (agents []agentEntities.Agent) {
 	records, err := db.DB.ReadAll("agents")
 	if err != nil {
 		fmt.Println("Error", err)
 	}
 	for _, a := range records {
-		agent := entities.Agent{}
+		agent := agentEntities.Agent{}
 		if err := json.Unmarshal([]byte(a), &agent); err != nil {
 			fmt.Println("Error", err)
 		}
@@ -57,12 +60,12 @@ func (db *FileDatabase) GetAllAgents() (agents []entities.Agent) {
 	return
 }
 
-func (db *FileDatabase) GetAgent(id string, agent *entities.Agent) error {
+func (db *FileDatabase) GetAgent(id string, agent *agentEntities.Agent) error {
 	err := db.DB.Read("agents", id, &agent)
 	return err
 }
 
-func (db *FileDatabase) SaveAgent(id string, agent entities.Agent) error {
+func (db *FileDatabase) SaveAgent(id string, agent agentEntities.Agent) error {
 	err := db.DB.Write("agents", id, &agent)
 	return err
 }
@@ -72,13 +75,13 @@ func (db *FileDatabase) DeleteOperator(operatorID string) error {
 	return err
 }
 
-func (db *FileDatabase) SaveOperator(operator entities.OperatorJob) error {
-	err := db.DB.Write("operatorJobs", operator.Config.OperatorId, operator)
+func (db *FileDatabase) SaveOperator(operatorJob operatorEntities.Operator) error {
+	operatorID := operatorJob.Config.OperatorId
+	err := db.DB.Write("operatorJobs", operatorID, operatorJob)
 	return err
 }
 
-// TODO: pipelineID + operatorID oder nur operatorID
-func (db *FileDatabase) GetOperator(operatorID string, operatorJob *entities.OperatorJob) error {
+func (db *FileDatabase) GetOperator(operatorID string, operatorJob *operatorEntities.Operator) error {
 	err := db.DB.Read("operatorJobs", operatorID, &operatorJob)
 	return err
 }
