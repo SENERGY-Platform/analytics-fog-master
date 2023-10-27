@@ -21,8 +21,8 @@ import (
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/topic"
 
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 	"time"
@@ -73,7 +73,7 @@ func (master *Master) StartOperatorAtAgent(command operatorEntities.StartOperato
 
 	for loops < master.StartOperatorConfig.Retries {
 		logging.Logger.Debugf("Send start command to agent: %s [%d/%d]", agentId, loops, master.StartOperatorConfig.Retries)
-		master.publishMessage(constants.TopicPrefix+agentId, string(commandValue), 2)
+		master.PublishMessage(topic.TopicPrefix+agentId, string(commandValue), 2)
 
 		operatorID := command.Operator.Config.OperatorId
 		if master.checkOperatorDeployed(operatorID) {
@@ -100,10 +100,10 @@ func (master *Master) checkOperatorDeployed(operatorId string) (created bool) {
 		if err := master.DB.GetOperator(operatorId, &operator); err != nil {
 
 		} else {
-			if operator.Event.Response == constants.OperatorDeployedError {
+			if operator.Event.Response == operatorEntities.OperatorDeployedError {
 				logging.Logger.Debugln(operator.Event.ResponseMessage)
 				return
-			} else if operator.Event.Response == constants.OperatorDeployedSuccessfully {
+			} else if operator.Event.Response == operatorEntities.OperatorDeployedSuccessfully {
 				// Agent deployed operator -> remove response so that later events like stopping can be set
 				created = true
 				operator.Event = operatorEntities.OperatorAgentResponse{}
@@ -141,7 +141,7 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 	for loops < master.StartOperatorConfig.Retries {
 		logging.Logger.Debugf("Send stop command to agent: %s [%d/%d]", agentID, loops, master.StartOperatorConfig.Retries)
 
-		master.publishMessage(constants.TopicPrefix+agentID, string(out), 2)
+		master.PublishMessage(topic.TopicPrefix+agentID, string(out), 2)
 
 		if master.checkOperatorWasStopped(operatorID) {
 			logging.Logger.Debugf("Agent %s stopped operator successfully\n", agentID)
@@ -169,10 +169,10 @@ func (master *Master) checkOperatorWasStopped(operatorID string) (stopped bool) 
 
 		} else {
 			// TODO wie resposne abspeicerhn ??
-			if operator.Event.Response == constants.OperatorDeployedError {
+			if operator.Event.Response == operatorEntities.OperatorDeployedError {
 				logging.Logger.Debugln(operator.Event.ResponseMessage)
 				return
-			} else if operator.Event.Response == constants.OperatorDeployedSuccessfully {
+			} else if operator.Event.Response == operatorEntities.OperatorDeployedSuccessfully {
 				stopped = true
 				return
 			}
@@ -184,7 +184,7 @@ func (master *Master) checkOperatorWasStopped(operatorID string) (stopped bool) 
 	return
 }
 
-func (master *Master) publishMessage(topic string, message string, qos int) {
+func (master *Master) PublishMessage(topic string, message string, qos int) {
 	master.Client.PublishMessage(topic, message, qos)
 }
 

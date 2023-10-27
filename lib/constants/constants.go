@@ -16,13 +16,15 @@
 
 package constants
 
-const TopicPrefix = "fog/"
-const AgentsTopic = TopicPrefix + "agents"
+import (
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
+)
+
+const AgentsTopic = agent.AgentsTopic
 
 // TODO control topic per user id control/[USERID] this hsould be done at the connector though
 // login at keycloak to get user id
-const ControlTopic = TopicPrefix + "control"
-const OperatorsTopic = TopicPrefix + "operators"
-
-const OperatorDeployedSuccessfully = "OK"
-const OperatorDeployedError = "Error"
+const ControlTopic = control.ControlTopic
+const OperatorsTopic = operator.OperatorsTopic

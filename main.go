@@ -75,6 +75,8 @@ func main() {
 
 	mqttClient.ConnectMQTTBroker(relayController)
 
+	master.Register()
+
 	go master.CheckAgents()
 
 	watchdog.RegisterStopFunc(func() error {

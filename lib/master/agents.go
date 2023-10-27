@@ -6,7 +6,7 @@ import (
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
 
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/topic"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 	"time"
@@ -37,7 +37,7 @@ func (master *Master) checkAgent(id string) {
 	if err != nil {
 		panic(err)
 	}
-	master.publishMessage(constants.TopicPrefix+id, command, 1)
+	master.PublishMessage(topic.TopicPrefix+id, command, 1)
 	agent := agentEntities.Agent{}
 	for i := 0; i < 3; i++ {
 		time.Sleep(5 * time.Second)

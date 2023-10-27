@@ -1,8 +1,13 @@
 package master
 
 import (
+	"encoding/json"
+
+	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
+	masterLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 )
 
@@ -18,4 +23,20 @@ func NewMaster(mqttClient *mqtt.MQTTClient, db db.DB, startOperatorConfig config
 		DB:                  db,
 		StartOperatorConfig: startOperatorConfig,
 	}
+}
+
+func (master *Master) Register() {
+	// TODO Master copnfiguration
+	// masterConf := conf.GetConf()
+	masterConf := masterLib.Configuration{
+		Id: "id",
+	}
+	logging.Logger.Debug("Register master")
+	conf, _ := json.Marshal(masterLib.MasterInfoMessage{
+		ControlMessage: controlEntities.ControlMessage{
+			Command: "register",
+		},
+		Conf: masterConf,
+	})
+	master.PublishMessage(masterLib.MasterTopic, string(conf), 2)
 }
