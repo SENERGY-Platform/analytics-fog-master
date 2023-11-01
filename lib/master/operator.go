@@ -185,7 +185,7 @@ func (master *Master) checkOperatorWasStopped(operatorID string) (stopped bool) 
 }
 
 func (master *Master) PublishMessage(topic string, message string, qos int) {
-	master.Client.PublishMessage(topic, message, qos)
+	master.Client.Publish(topic, message, qos)
 }
 
 func (master *Master) HandleAgentOperatorResponse(response operatorEntities.OperatorAgentResponse) {

@@ -1,14 +1,10 @@
 package config
 
 import (
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
 	"github.com/y-du/go-log-level/level"
 )
-
-type BrokerConfig struct {
-	Host string `json:"broker_host" env_var:"BROKER_HOST"`
-	Port string `json:"broker_port" env_var:"BROKER_PORT"`
-}
 
 type StartOperatorConfig struct {
 	Retries int `json:"retries_start_operator" env_var:"RETRIES_START_OPERATOR"`
@@ -16,7 +12,7 @@ type StartOperatorConfig struct {
 }
 
 type Config struct {
-	Broker              BrokerConfig
+	Broker              mqtt.BrokerConfig
 	StartOperatorConfig StartOperatorConfig
 	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
 	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
@@ -24,7 +20,7 @@ type Config struct {
 
 func NewConfig(path string) (*Config, error) {
 	cfg := Config{
-		Broker: BrokerConfig{
+		Broker: mqtt.BrokerConfig{
 			Port: "1883",
 			Host: "localhost",
 		},

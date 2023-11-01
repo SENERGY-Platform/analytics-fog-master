@@ -26,6 +26,7 @@ func NewMaster(mqttClient *mqtt.MQTTClient, db db.DB, startOperatorConfig config
 }
 
 func (master *Master) Register() {
+	// Master must register in case an agent is online before the master, so the agent can register again
 	// TODO Master copnfiguration
 	// masterConf := conf.GetConf()
 	masterConf := masterLib.Configuration{
