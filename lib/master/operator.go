@@ -21,7 +21,6 @@ import (
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
-	"github.com/SENERGY-Platform/analytics-fog-lib/lib/topic"
 
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
@@ -73,7 +72,7 @@ func (master *Master) StartOperatorAtAgent(command operatorEntities.StartOperato
 
 	for loops < master.StartOperatorConfig.Retries {
 		logging.Logger.Debugf("Send start command to agent: %s [%d/%d]", agentId, loops, master.StartOperatorConfig.Retries)
-		master.PublishMessage(topic.TopicPrefix+agentId, string(commandValue), 2)
+		master.PublishMessageToAgent(string(commandValue), agentId, 2)
 
 		operatorID := command.Operator.Config.OperatorId
 		if master.checkOperatorDeployed(operatorID) {
@@ -141,7 +140,7 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 	for loops < master.StartOperatorConfig.Retries {
 		logging.Logger.Debugf("Send stop command to agent: %s [%d/%d]", agentID, loops, master.StartOperatorConfig.Retries)
 
-		master.PublishMessage(topic.TopicPrefix+agentID, string(out), 2)
+		master.PublishMessageToAgent(string(out), agentID, 2)
 
 		if master.checkOperatorWasStopped(operatorID) {
 			logging.Logger.Debugf("Agent %s stopped operator successfully\n", agentID)

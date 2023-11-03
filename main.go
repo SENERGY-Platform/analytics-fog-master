@@ -62,6 +62,7 @@ func main() {
 		defer logFile.Close()
 	}
 
+	logging.Logger.Debug("Init DB")
 	database, err := db.NewFileDatabase(config.DataDir)
 	if err != nil {
 		logging.Logger.Error(err)
@@ -69,14 +70,17 @@ func main() {
 
 	watchdog := srv_base.NewWatchdog(logging.Logger, syscall.SIGINT, syscall.SIGTERM)
 
-	mqttClient := mqtt.NewMQTTClient(config.Broker)
+	mqttClient := mqtt.NewMQTTClient(config.Broker, logging.Logger)
 	master := master.NewMaster(mqttClient, database, config.StartOperatorConfig)
 	relayController := relay.NewRelayController(master)
 
+	logging.Logger.Debug("Connect MQTT")
 	mqttClient.ConnectMQTTBroker(relayController)
 
+	logging.Logger.Debug("Register master")
 	master.Register()
 
+	logging.Logger.Debug("Start agent ping in background")
 	go master.CheckAgents()
 
 	watchdog.RegisterStopFunc(func() error {

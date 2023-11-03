@@ -3,10 +3,9 @@ package master
 import (
 	"encoding/json"
 
-	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
+	agentLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
 
-	"github.com/SENERGY-Platform/analytics-fog-lib/lib/topic"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 	"time"
@@ -27,7 +26,7 @@ func (master *Master) CheckAgents() {
 }
 
 func (master *Master) checkAgent(id string) {
-	out, err := json.Marshal(agentEntities.Ping{
+	out, err := json.Marshal(agentLib.Ping{
 		ControlMessage: controlEntities.ControlMessage{
 			Command: "ping",
 		},
@@ -37,8 +36,8 @@ func (master *Master) checkAgent(id string) {
 	if err != nil {
 		panic(err)
 	}
-	master.PublishMessage(topic.TopicPrefix+id, command, 1)
-	agent := agentEntities.Agent{}
+	master.PublishMessageToAgent(command, id, 1)
+	agent := agentLib.Agent{}
 	for i := 0; i < 3; i++ {
 		time.Sleep(5 * time.Second)
 		if err := master.DB.GetAgent(id, &agent); err != nil {
@@ -67,11 +66,11 @@ func (master *Master) checkAgent(id string) {
 	}
 }
 
-func (master *Master) RegisterAgent(agentConf agentEntities.Configuration) error {
+func (master *Master) RegisterAgent(agentConf agentLib.Configuration) error {
 	// TODO after poing Active field gets removed??
 	id := agentConf.Id
 
-	agent := agentEntities.Agent{
+	agent := agentLib.Agent{
 		Id:     id,
 		Active: true,
 	}
@@ -83,9 +82,9 @@ func (master *Master) RegisterAgent(agentConf agentEntities.Configuration) error
 	return nil
 }
 
-func (master *Master) PongAgent(agentConf agentEntities.Configuration) error {
+func (master *Master) PongAgent(agentConf agentLib.Configuration) error {
 	id := agentConf.Id
-	agent := agentEntities.Agent{
+	agent := agentLib.Agent{
 		Id:      id,
 		Active:  true,
 		Updated: time.Now().UTC(),
@@ -95,4 +94,8 @@ func (master *Master) PongAgent(agentConf agentEntities.Configuration) error {
 		return err
 	}
 	return nil
+}
+
+func (master *Master) PublishMessageToAgent(message string, agentID string, qos int) {
+	master.PublishMessage(agentLib.AgentsTopic+"/"+agentID, message, qos)
 }

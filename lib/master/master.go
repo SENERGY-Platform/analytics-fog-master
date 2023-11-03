@@ -5,10 +5,10 @@ import (
 
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
 	masterLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/master"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 )
 
 type Master struct {
