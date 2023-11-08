@@ -18,6 +18,7 @@ package master
 
 import (
 	"encoding/json"
+	"errors"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
@@ -27,12 +28,13 @@ import (
 	"time"
 )
 
-func (master *Master) StartOperator(command operatorEntities.StartOperatorControlCommand) {
+func (master *Master) StartOperator(command operatorEntities.StartOperatorControlCommand) error {
 	operator := operatorEntities.Operator{
 		StartOperatorMessage: command.Operator,
 	}
 	if err := master.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Error(err)
+		logging.Logger.Errorf("Error saving operator after receiving start command: %s", err)
+		return err
 	}
 
 	agents := master.DB.GetAllAgents()
@@ -50,24 +52,26 @@ func (master *Master) StartOperator(command operatorEntities.StartOperatorContro
 		} else {
 			for _, agent := range activeAgents {
 				logging.Logger.Debugf("Try to start operator at agent %s", agent.Id)
-				deployed := master.StartOperatorAtAgent(command, agent.Id)
-				if deployed {
-					return
+				err := master.StartOperatorAtAgent(command, agent.Id)
+				if err != nil {
+					logging.Logger.Debugf("Agent %s did not deploy operator -> try next agent\n", agent.Id)
+					return err
 				}
-				logging.Logger.Debugf("Agent %s did not deploy operator -> try next agent\n", agent.Id)
+				return nil
 			}
 		}
 	} else {
 		logging.Logger.Debug("No agents available")
 	}
+	return nil
 }
 
-func (master *Master) StartOperatorAtAgent(command operatorEntities.StartOperatorControlCommand, agentId string) (deployed bool) {
+func (master *Master) StartOperatorAtAgent(command operatorEntities.StartOperatorControlCommand, agentId string) (err error) {
 	loops := 0
-	deployed = false
 	commandValue, err := json.Marshal(command)
 	if err != nil {
-		panic(err)
+		logging.Logger.Errorf("Error marshalling start command: %s", err)
+		return err
 	}
 
 	for loops < master.StartOperatorConfig.Retries {
@@ -76,15 +80,14 @@ func (master *Master) StartOperatorAtAgent(command operatorEntities.StartOperato
 
 		operatorID := command.Operator.Config.OperatorId
 		if master.checkOperatorDeployed(operatorID) {
-			logging.Logger.Debugf("Agent %s deployed operator successfully\n", agentId)
-			deployed = true
-			return
+			logging.Logger.Debugf("Agent %s deployed operator %s successfully\n", agentId, operatorID)
+			return nil
 		}
 		loops++
 		time.Sleep(time.Duration(master.StartOperatorConfig.Timeout) * time.Second)
 	}
 
-	return
+	return errors.New("Retries exceeded. Operator was not deployed.")
 
 	// TODO send stop message in case it got depoyed after the timeout
 }
@@ -94,7 +97,7 @@ func (master *Master) checkOperatorDeployed(operatorId string) (created bool) {
 	loops := 0
 	operator := operatorEntities.Operator{}
 	for loops < master.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Check if operator was deployed [%d/%d]", loops, master.StartOperatorConfig.Retries)
+		logging.Logger.Debugf("Check if operator %s was deployed [%d/%d]", operatorId, loops, master.StartOperatorConfig.Retries)
 
 		if err := master.DB.GetOperator(operatorId, &operator); err != nil {
 
@@ -124,7 +127,7 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 	loops := 0
 
 	if err := master.DB.GetOperator(operatorID, &operator); err != nil {
-		logging.Logger.Errorf("Cant get operator: %s", err)
+		logging.Logger.Errorf("Cant load operator %s after receving stop command: %s", operatorID, err)
 		return err
 	}
 	agentID := operator.Agent
@@ -143,7 +146,7 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 		master.PublishMessageToAgent(string(out), agentID, 2)
 
 		if master.checkOperatorWasStopped(operatorID) {
-			logging.Logger.Debugf("Agent %s stopped operator successfully\n", agentID)
+			logging.Logger.Debugf("Agent %s stopped operator %s successfully\n", agentID, operatorID)
 			if err := master.DB.DeleteOperator(operatorID); err != nil {
 				return err
 			}
@@ -162,7 +165,7 @@ func (master *Master) checkOperatorWasStopped(operatorID string) (stopped bool) 
 	operator := operatorEntities.Operator{}
 
 	for loops < master.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Check if operator was stopped [%d/%d]", loops, master.StartOperatorConfig.Retries)
+		logging.Logger.Debugf("Check if operator %s was stopped [%d/%d]", operatorID, loops, master.StartOperatorConfig.Retries)
 
 		if err := master.DB.GetOperator(operatorID, &operator); err != nil {
 

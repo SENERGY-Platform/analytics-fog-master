@@ -29,7 +29,9 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
+	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
+	sb_util "github.com/SENERGY-Platform/go-service-base/util"
 	"github.com/joho/godotenv"
 )
 
@@ -61,6 +63,7 @@ func main() {
 	if logFile != nil {
 		defer logFile.Close()
 	}
+	logging.Logger.Debugf("config: %s", sb_util.ToJsonStr(config))
 
 	logging.Logger.Debug("Init DB")
 	database, err := db.NewFileDatabase(config.DataDir)
@@ -70,12 +73,14 @@ func main() {
 
 	watchdog := srv_base.NewWatchdog(logging.Logger, syscall.SIGINT, syscall.SIGTERM)
 
-	mqttClient := mqtt.NewMQTTClient(config.Broker, logging.Logger)
+	fogMQTTConfig := mqttLib.BrokerConfig(config.Broker)
+
+	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
 	master := master.NewMaster(mqttClient, database, config.StartOperatorConfig)
 	relayController := relay.NewRelayController(master)
 
 	logging.Logger.Debug("Connect MQTT")
-	mqttClient.ConnectMQTTBroker(relayController)
+	mqttClient.ConnectMQTTBroker(relayController, nil, nil)
 
 	logging.Logger.Debug("Register master")
 	master.Register()

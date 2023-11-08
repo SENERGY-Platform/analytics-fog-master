@@ -12,7 +12,7 @@ func (relay *RelayController) processControlCommand(message []byte) {
 	command := controlEntities.ControlMessage{}
 	err := json.Unmarshal(message, &command)
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Println("Error at unmarshalling control operator message:", err)
 	}
 
 	if command.Command == "startOperator" {
@@ -20,7 +20,7 @@ func (relay *RelayController) processControlCommand(message []byte) {
 		command := operatorEntities.StartOperatorControlCommand{}
 		err := json.Unmarshal(message, &command)
 		if err != nil {
-			fmt.Println("error:", err)
+			fmt.Println("Error at unmarshalling start operator message:", err)
 		}
 		relay.Master.StartOperator(command)
 	}
@@ -29,7 +29,7 @@ func (relay *RelayController) processControlCommand(message []byte) {
 		command := operatorEntities.StopOperatorControlCommand{}
 		err := json.Unmarshal(message, &command)
 		if err != nil {
-			fmt.Println("error:", err)
+			fmt.Println("Error at unmarshalling stop operator message:", err)
 		}
 		relay.Master.StopOperator(command)
 	}

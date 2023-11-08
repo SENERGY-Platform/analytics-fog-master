@@ -68,6 +68,7 @@ func (master *Master) checkAgent(id string) {
 
 func (master *Master) RegisterAgent(agentConf agentLib.Configuration) error {
 	// TODO after poing Active field gets removed??
+	// TODO ignore register when agent exists
 	id := agentConf.Id
 
 	agent := agentLib.Agent{

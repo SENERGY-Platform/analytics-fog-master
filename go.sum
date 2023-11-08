@@ -1,9 +1,9 @@
-github.com/SENERGY-Platform/analytics-fog-lib v0.0.0-20231026082233-cc7c47d50a08 h1:aWiz9WKS54HWtZdc8SXdymJIU+GnFjhZDFZnDzpoNYk=
-github.com/SENERGY-Platform/analytics-fog-lib v0.0.0-20231026082233-cc7c47d50a08/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
-github.com/SENERGY-Platform/analytics-fog-lib v1.0.0 h1:UPu2NRW92pMnnEutdElohEwcK8sKcCsQaW/hRcLAyrg=
-github.com/SENERGY-Platform/analytics-fog-lib v1.0.0/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
+github.com/SENERGY-Platform/analytics-fog-lib v1.0.2 h1:0p2x5bwrOwjPwFeT3gg9Kdz1CE3abWm1nPRoezwWKbU=
+github.com/SENERGY-Platform/analytics-fog-lib v1.0.2/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
 github.com/SENERGY-Platform/go-service-base v0.13.0 h1:1ytMAd84TO6+gvffjITShTOPStJiP7rSly9lG09fzxU=
 github.com/SENERGY-Platform/go-service-base v0.13.0/go.mod h1:NyMDXzkC/5oRzaMZ1wbFlXTnLoyo3CXM8q1eSloMuBo=
+github.com/SENERGY-Platform/go-service-base/util v0.14.0 h1:oMzPR6zrbHPPgcMi39rDnM3qXh4shP03JRfSyDnnMlw=
+github.com/SENERGY-Platform/go-service-base/util v0.14.0/go.mod h1:uYeWyyknGyxfAx4zvnhppDVjeTfVWOAIMps5mJeaDwU=
 github.com/eclipse/paho.mqtt.golang v1.4.3 h1:2kwcUGn8seMUfWndX0hGbvH8r7crgcJguQNCyp70xik=
 github.com/eclipse/paho.mqtt.golang v1.4.3/go.mod h1:CSYvoAlsMkhYOXh/oKyxa8EcBci6dVkLCbo5tTC1RIE=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=

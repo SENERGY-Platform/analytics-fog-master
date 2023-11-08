@@ -8,9 +8,9 @@ import (
 
 func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *log_level.Logger) *mqtt.MQTTClient {
 	topics := map[string]byte{
-		constants.ControlTopic:   byte(2),
+		constants.OperatorsControlTopic:   byte(2),
 		constants.AgentsTopic:    byte(2),
-		constants.OperatorsTopic: byte(2),
+		constants.OperatorsControlResponseTopic: byte(2),
 	}
 
 	return &mqtt.MQTTClient{

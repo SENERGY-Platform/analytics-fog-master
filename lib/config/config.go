@@ -12,7 +12,7 @@ type StartOperatorConfig struct {
 }
 
 type Config struct {
-	Broker              mqtt.BrokerConfig
+	Broker              mqtt.FogBrokerConfig
 	StartOperatorConfig StartOperatorConfig
 	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
 	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
@@ -20,7 +20,7 @@ type Config struct {
 
 func NewConfig(path string) (*Config, error) {
 	cfg := Config{
-		Broker: mqtt.BrokerConfig{
+		Broker: mqtt.FogBrokerConfig{
 			Port: "1883",
 			Host: "localhost",
 		},

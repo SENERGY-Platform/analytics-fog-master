@@ -37,11 +37,11 @@ func NewRelayController(master *master.Master) *RelayController {
 
 func (relay *RelayController) ProcessMessage(message MQTT.Message) {
 	switch message.Topic() {
-	case constants.ControlTopic:
+	case constants.OperatorsControlTopic:
 		relay.processControlCommand(message.Payload())
 	case constants.AgentsTopic:
 		relay.processAgentsCommand(message.Payload())
-	case constants.OperatorsTopic:
+	case constants.OperatorsControlResponseTopic:
 		relay.processOperatorsCommand(message.Payload())
 	}
 }
