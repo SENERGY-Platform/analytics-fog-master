@@ -78,9 +78,10 @@ func main() {
 	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
 	master := master.NewMaster(mqttClient, database, config.StartOperatorConfig)
 	relayController := relay.NewRelayController(master)
-
+	mqttClient.SetRelayController(relayController)
+	
 	logging.Logger.Debug("Connect MQTT")
-	mqttClient.ConnectMQTTBroker(relayController, nil, nil)
+	mqttClient.ConnectMQTTBroker(nil, nil)
 
 	logging.Logger.Debug("Register master")
 	master.Register()

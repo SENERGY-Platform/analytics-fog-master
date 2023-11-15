@@ -31,6 +31,10 @@ func NewConfig(path string) (*Config, error) {
 			Terminal:     true,
 		},
 		DataDir: "./data",
+		StartOperatorConfig: StartOperatorConfig{
+			Retries: 10,
+			Timeout: 10,
+		},
 	}
 
 	err := srv_base.LoadConfig(path, &cfg, nil, nil, nil)

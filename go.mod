@@ -2,10 +2,10 @@ module github.com/SENERGY-Platform/analytics-fog-master
 
 go 1.21.3
 
-replace github.com/SENERGY-Platform/analytics-fog-lib => ../analytics-fog-lib
+//replace github.com/SENERGY-Platform/analytics-fog-lib => ../analytics-fog-lib
 
 require (
-	github.com/SENERGY-Platform/analytics-fog-lib v1.0.2
+	github.com/SENERGY-Platform/analytics-fog-lib v1.0.4
 	github.com/SENERGY-Platform/go-service-base v0.13.0
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/joho/godotenv v1.5.1

@@ -1,5 +1,7 @@
 github.com/SENERGY-Platform/analytics-fog-lib v1.0.2 h1:0p2x5bwrOwjPwFeT3gg9Kdz1CE3abWm1nPRoezwWKbU=
 github.com/SENERGY-Platform/analytics-fog-lib v1.0.2/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
+github.com/SENERGY-Platform/analytics-fog-lib v1.0.4 h1:hLkRXNtNAklnB9irYT50ACrsQsMTGNvAOVzm3yFu9Jc=
+github.com/SENERGY-Platform/analytics-fog-lib v1.0.4/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
 github.com/SENERGY-Platform/go-service-base v0.13.0 h1:1ytMAd84TO6+gvffjITShTOPStJiP7rSly9lG09fzxU=
 github.com/SENERGY-Platform/go-service-base v0.13.0/go.mod h1:NyMDXzkC/5oRzaMZ1wbFlXTnLoyo3CXM8q1eSloMuBo=
 github.com/SENERGY-Platform/go-service-base/util v0.14.0 h1:oMzPR6zrbHPPgcMi39rDnM3qXh4shP03JRfSyDnnMlw=
