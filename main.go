@@ -17,19 +17,22 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"syscall"
 
+	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
+
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
-	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
 	sb_util "github.com/SENERGY-Platform/go-service-base/util"
 	"github.com/joho/godotenv"
@@ -76,7 +79,17 @@ func main() {
 	fogMQTTConfig := mqttLib.BrokerConfig(config.Broker)
 
 	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
-	master := master.NewMaster(mqttClient, database, config.StartOperatorConfig)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	operatorController := controller.NewController(ctx, mqttClient, database, config.StartOperatorConfig)
+	go operatorController.Start()
+	watchdog.RegisterStopFunc(func() error {
+		cancel()
+		return nil
+	})
+
+
+	master := master.NewMaster(mqttClient, database, operatorController)
 	relayController := relay.NewRelayController(master)
 	mqttClient.SetRelayController(relayController)
 	
@@ -94,6 +107,7 @@ func main() {
 		return nil
 	})
 
+	logging.Logger.Info("Master is ready")
 	watchdog.Start()
 
 	ec = watchdog.Join()

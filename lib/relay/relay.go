@@ -19,8 +19,10 @@ package relay
 import (
 	"fmt"
 
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/constants"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
+	"github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
+
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -37,12 +39,16 @@ func NewRelayController(master *master.Master) *RelayController {
 
 func (relay *RelayController) ProcessMessage(message MQTT.Message) {
 	switch message.Topic() {
-	case constants.OperatorsControlTopic:
-		relay.processControlCommand(message.Payload())
-	case constants.AgentsTopic:
+	case operator.StartOperatorFogTopic:
+		relay.processStartOperatorCommand(message.Payload())
+	case operator.StopOperatorFogTopic:
+		relay.processStopOperatorCommand(message.Payload())
+	case agent.AgentsTopic:
 		relay.processAgentsCommand(message.Payload())
-	case constants.OperatorsControlResponseTopic:
-		relay.processOperatorsCommand(message.Payload())
+	case operator.StartOperatorResponseFogTopic:
+		relay.processAgentStartOperatorResponse(message.Payload())
+	case operator.StopOperatorResponseFogTopic:
+		relay.processAgentStopOperatorResponse(message.Payload())
 	}
 }
 
