@@ -12,11 +12,24 @@ import (
 	"time"
 )
 
+func (controller *Controller) checkStartComandAlreadyProcessed(operator operatorEntities.Operator) bool {
+	operator2 := operatorEntities.Operator{}
+	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator2)
+	return err == nil
+}
+
 func (controller *Controller) startOperator(command operatorEntities.StartOperatorControlCommand) error {
 	operator := operatorEntities.Operator{
 		StartOperatorControlCommand: command,
 		State:                "starting",
 	}
+
+	alreadyProcessed := controller.checkStartComandAlreadyProcessed(operator)
+	if alreadyProcessed {
+		logging.Logger.Debugf("Operator start command was already processed")
+		return nil
+	}
+
 	if err := controller.DB.SaveOperator(operator); err != nil {
 		logging.Logger.Errorf("Error saving operator after receiving start command: %s", err)
 		return err
