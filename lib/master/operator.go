@@ -71,5 +71,40 @@ func (master *Master) StartOperator(command operatorEntities.StartOperatorContro
 
 func (master *Master) StopOperator(command operatorEntities.StopOperatorControlCommand) {
 	master.OperatorController.StopOperator(command)
+}
 
+func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOperatorControlCommand) {
+	logging.Logger.Debug("Start missing operators")
+	for _, operatorStartCmd := range(syncMsg) {
+		err := master.DB.GetOperator(operatorStartCmd.Config.OperatorID)
+		if err != nil {
+			// operator does not exists
+			// TODO: better way to check
+			master.StartOperator(operatorStartCmd)
+		}
+	}
+}
+
+func (master *Master) stopOperatorOrphans(syncMsg []operatorEntities.StartOperatorControlCommand) {
+	logging.Logger.Debug("Stop orphan operators")
+	expectedOperatorIDs := map[string]string{}
+	for _, operatorStartCmd := range(syncMsg) {
+		expectedOperatorIDs[operatorStartCmd.Config.OperatorID] = ""
+	}
+
+	for _, operator := range(master.DB.GetOperators()) {
+		operatorID := operator.Config.OperatorID
+		_, contains := expectedOperatorIDs[operatorID]
+		if !contains {
+			stopCommand := operatorEntities.StopOperatorControlCommand{
+				OperatorID: operatorID,
+			}
+			master.StopOperator(stopCommand)
+		} 
+	}
+}
+
+func (master *Master) SyncOperatorStates(syncMsg []operatorEntities.StartOperatorControlCommand) {
+	master.startMissingOperators(syncMsg)
+	master.stopOperatorOrphans(syncMsg)
 }

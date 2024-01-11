@@ -12,4 +12,5 @@ type DB interface {
 	DeleteOperator(operatorID string) error
 	GetOperator(operatorID string, operatorJob *operatorEntities.Operator) error
 	SaveOperator(operator operatorEntities.Operator) error
+	GetOperators() ([]operatorEntities.Operator, error)
 }

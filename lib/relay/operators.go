@@ -26,3 +26,13 @@ func (relay *RelayController) processAgentStopOperatorResponse(message []byte) {
 	}
 	relay.Master.HandleAgentStopOperatorResponse(stopOperatorResponse)
 }
+
+func (relay *RelayController) processOperatorControlSync(message []byte) {
+	fmt.Println("Received operator control sync message")
+	syncMessage := []operatorEntities.StartOperatorControlCommand{}
+	err := json.Unmarshal(message, &syncMessage)
+	if err != nil {
+		fmt.Println("Cant unmarshal upstream sync message:", err)
+	}
+	relay.Master.SyncOperatorStates(syncMessage)
+}

@@ -85,3 +85,16 @@ func (db *FileDatabase) GetOperator(operatorID string, operatorJob *operatorEnti
 	err := db.DB.Read("operatorJobs", operatorID, &operatorJob)
 	return err
 }
+
+func (db *FileDatabase) GetOperators() (operators []operatorEntities.Operator, err error) {
+	records, err := db.DB.ReadAll("operatorJobs")
+	for _, record := range records {
+		operator := operatorEntities.Operator{}
+		if err := json.Unmarshal([]byte(record), &operator); err != nil {
+			fmt.Println("Error", err)
+			return []operatorEntities.Operator{}, err
+		}
+		operators = append(operators, operator)
+	}
+	return 
+}

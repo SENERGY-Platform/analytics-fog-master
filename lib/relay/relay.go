@@ -49,6 +49,8 @@ func (relay *RelayController) ProcessMessage(message MQTT.Message) {
 		relay.processAgentStartOperatorResponse(message.Payload())
 	case operator.StopOperatorResponseFogTopic:
 		relay.processAgentStopOperatorResponse(message.Payload())
+	case operator.OperatorControlSyncResponseFogTopic:
+		relay.processOperatorControlSync(message.Payload())
 	}
 }
 
