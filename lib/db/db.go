@@ -19,6 +19,9 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"os"
+	"path/filepath"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
@@ -30,6 +33,7 @@ import (
 
 type FileDatabase struct {
 	DB *scribble.Driver
+	DataDir string
 }
 
 func NewFileDatabase(dataDir string) (*FileDatabase, error) {
@@ -41,6 +45,7 @@ func NewFileDatabase(dataDir string) (*FileDatabase, error) {
 
 	db := &FileDatabase{
 		DB: fileDB,
+		DataDir: dataDir,
 	}
 	return db, nil
 }
@@ -86,15 +91,15 @@ func (db *FileDatabase) GetOperator(operatorID string, operatorJob *operatorEnti
 	return err
 }
 
-func (db *FileDatabase) GetOperators() (operators []operatorEntities.Operator, err error) {
-	records, err := db.DB.ReadAll("operatorJobs")
-	for _, record := range records {
-		operator := operatorEntities.Operator{}
-		if err := json.Unmarshal([]byte(record), &operator); err != nil {
-			fmt.Println("Error", err)
-			return []operatorEntities.Operator{}, err
-		}
-		operators = append(operators, operator)
-	}
+func (db *FileDatabase) GetOperatorIDs() (operatorIDs []string, err error) {
+	files, err := os.ReadDir(filepath.Join(db.DataDir, "operatorJobs"))
+    if err != nil {
+		return
+    }
+
+    for _, file := range files {
+		fileName := file.Name()
+        operatorIDs = append(operatorIDs, strings.Split(fileName, ".")[0])
+    }
 	return 
 }

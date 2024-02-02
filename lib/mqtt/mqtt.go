@@ -1,12 +1,11 @@
 package mqtt
 
 import (
-	operator "command-line-arguments/home/hannes/Desktop/projects/analytics-fog/analytics-fog-lib/lib/operator/topics.go"
-
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 	log_level "github.com/y-du/go-log-level"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *log_level.Logger) *mqtt.MQTTClient {
@@ -23,5 +22,9 @@ func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *log_level.Logger) *mq
 		Broker:      brokerConfig,
 		TopicConfig: topics,
 		Logger:      logger,
+		OnConnectHandler: OnConnectFog,
 	}
+}
+
+func OnConnectFog(client MQTT.Client) {
 }

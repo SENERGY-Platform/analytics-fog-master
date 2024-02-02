@@ -76,32 +76,44 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOperatorControlCommand) {
 	logging.Logger.Debug("Start missing operators")
 	for _, operatorStartCmd := range(syncMsg) {
-		err := master.DB.GetOperator(operatorStartCmd.Config.OperatorID)
+		op := operatorEntities.Operator{}
+		err := master.DB.GetOperator(operatorStartCmd.Config.OperatorId, &op)
 		if err != nil {
 			// operator does not exists
 			// TODO: better way to check
+			logging.Logger.Debug("Start missing operator:" + operatorStartCmd.Config.OperatorId)
 			master.StartOperator(operatorStartCmd)
 		}
 	}
+	logging.Logger.Debug("Completed missing operators check")
 }
 
 func (master *Master) stopOperatorOrphans(syncMsg []operatorEntities.StartOperatorControlCommand) {
 	logging.Logger.Debug("Stop orphan operators")
 	expectedOperatorIDs := map[string]string{}
 	for _, operatorStartCmd := range(syncMsg) {
-		expectedOperatorIDs[operatorStartCmd.Config.OperatorID] = ""
+		expectedOperatorIDs[operatorStartCmd.Config.OperatorId] = ""
 	}
+	logging.Logger.Debugf("Expected operators %+v", expectedOperatorIDs)
 
-	for _, operator := range(master.DB.GetOperators()) {
-		operatorID := operator.Config.OperatorID
+	currentOperatorIDs, err := master.DB.GetOperatorIDs()
+	if err != nil {
+		logging.Logger.Errorf("Cant load current operators: " + err.Error())
+		return
+	}
+	logging.Logger.Debugf("Current operators %+v", currentOperatorIDs)
+
+	for _, operatorID := range(currentOperatorIDs) {
 		_, contains := expectedOperatorIDs[operatorID]
 		if !contains {
+			logging.Logger.Debug("Stop orphan operator " + operatorID)
 			stopCommand := operatorEntities.StopOperatorControlCommand{
-				OperatorID: operatorID,
+				OperatorIDs: operatorEntities.OperatorIDs{OperatorId: operatorID},
 			}
 			master.StopOperator(stopCommand)
 		} 
 	}
+	logging.Logger.Debug("Completed orphan operators check")
 }
 
 func (master *Master) SyncOperatorStates(syncMsg []operatorEntities.StartOperatorControlCommand) {
