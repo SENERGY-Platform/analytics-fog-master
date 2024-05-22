@@ -12,10 +12,18 @@ import (
 	"time"
 )
 
-func (controller *Controller) checkStartComandAlreadyProcessed(operator operatorEntities.Operator) bool {
-	operator2 := operatorEntities.Operator{}
-	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator2)
-	return err == nil
+func (controller *Controller) operatorIsAlreadyDeployed(operatorRequest operatorEntities.Operator) bool {
+	operator := operatorEntities.Operator{}
+	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator)
+	if err != nil {
+		return false
+	}
+
+	if operator.Config.OperatorIDs.OperatorId == operatorRequest.Config.OperatorIDs.OperatorId && operator.Config.OperatorIDs.PipelineId == operatorRequest.Config.OperatorIDs.PipelineId {
+		return true
+	}
+
+	return false
 }
 
 func (controller *Controller) startOperator(command operatorEntities.StartOperatorControlCommand) error {
@@ -24,9 +32,9 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		State:                "starting",
 	}
 
-	alreadyProcessed := controller.checkStartComandAlreadyProcessed(operator)
-	if alreadyProcessed {
-		logging.Logger.Debugf("Operator start command was already processed")
+	operatorIsDeployed := controller.operatorIsAlreadyDeployed(operator)
+	if operatorIsDeployed {
+		logging.Logger.Debugf("Operator is already deployed")
 		return nil
 	}
 
