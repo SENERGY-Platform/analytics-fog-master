@@ -47,7 +47,7 @@ func (master *Master) HandleAgentStartOperatorResponse(response operatorEntities
 }
 
 func (master *Master) HandleAgentStopOperatorResponse(response operatorEntities.StopOperatorAgentResponse) {
-	logging.Logger.Debugf("Handle agent response to start operator command")
+	logging.Logger.Debugf("Handle agent response to stop operator command")
 	operator := operatorEntities.Operator{}
 
 	err := master.DB.GetOperator(response.OperatorId, &operator)
