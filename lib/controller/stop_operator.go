@@ -49,16 +49,16 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 
 	logging.Logger.Debugf("Try to stop operator %s at agent %s", operatorID, agentID)
 
-	for loops < controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Send stop command to agent: %s [%d/%d]", agentID, loops, controller.StartOperatorConfig.Retries)
+	for loops <= controller.StartOperatorConfig.Retries {
+		logging.Logger.Debugf("Send stop command to agent: %s [%d/%d]", agentID, loops+1, controller.StartOperatorConfig.Retries+1)
 		controller.Client.Publish(agentEntities.GetStopOperatorAgentTopic(agentID), string(stopOperatorAgentMsg), 2)
 
 		if controller.checkOperatorWasStopped(operatorID) {
 			logging.Logger.Debugf("Agent %s stopped operator %s successfully\n", agentID, operatorID)
-			return nil
-			/*if err := master.DB.DeleteOperator(operatorID); err != nil {
+			if err := controller.DB.DeleteOperator(operatorID); err != nil {
 				return err
-			}*/
+			}
+			logging.Logger.Debugf("Deleted operator: %s successfully\n", operatorID)
 		}
 		loops++
 		time.Sleep(time.Duration(controller.StartOperatorConfig.Timeout) * time.Second)
@@ -67,14 +67,13 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 	return nil
 }
 
-// TODO periodic checker generic?
 func (controller *Controller) checkOperatorWasStopped(operatorID string) (stopped bool) {
 	stopped = false
 	loops := 0
 	operator := operatorEntities.Operator{}
 
-	for loops < controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Check if operator %s was stopped [%d/%d]", operatorID, loops, controller.StartOperatorConfig.Retries)
+	for loops <= controller.StartOperatorConfig.Retries {
+		logging.Logger.Debugf("Check if operator %s was stopped [%d/%d]", operatorID, loops+1, controller.StartOperatorConfig.Retries+1)
 
 		if err := controller.DB.GetOperator(operatorID, &operator); err != nil {
 
