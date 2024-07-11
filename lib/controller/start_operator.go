@@ -86,8 +86,8 @@ func (controller *Controller) startOperatorAtAgent(command operatorEntities.Star
 		return false, err
 	}
 
-	for loops < controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Send start command to agent: %s [%d/%d]", agentId, loops, controller.StartOperatorConfig.Retries)
+	for loops <= controller.StartOperatorConfig.Retries {
+		logging.Logger.Debugf("Send start command to agent: %s [%d/%d]", agentId, loops+1, controller.StartOperatorConfig.Retries+1)
 		controller.Client.Publish(agentEntities.GetStartOperatorAgentTopic(agentId), string(commandValue), 2)
 		operatorID := command.Config.OperatorId
 		operatorStarted, err := controller.checkOperatorDeployed(operatorID) 
@@ -112,8 +112,8 @@ func (controller *Controller) checkOperatorDeployed(operatorId string) (created 
 	created = false
 	loops := 0
 	operator := operatorEntities.Operator{}
-	for loops < controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Check if operator %s was deployed [%d/%d]", operatorId, loops, controller.StartOperatorConfig.Retries)
+	for loops <= controller.StartOperatorConfig.Retries {
+		logging.Logger.Debugf("Check if operator %s was deployed [%d/%d]", operatorId, loops+1, controller.StartOperatorConfig.Retries+1)
 
 		if err = controller.DB.GetOperator(operatorId, &operator); err != nil {
 			logging.Logger.Errorf("Cant get operator from DB: %s", err)
