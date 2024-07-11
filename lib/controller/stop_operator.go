@@ -59,6 +59,7 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 				return err
 			}
 			logging.Logger.Debugf("Deleted operator: %s successfully\n", operatorID)
+			return nil
 		}
 		loops++
 		time.Sleep(time.Duration(controller.StartOperatorConfig.Timeout) * time.Second)
