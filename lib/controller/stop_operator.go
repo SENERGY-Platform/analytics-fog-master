@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"errors"
 
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
@@ -12,57 +11,78 @@ import (
 	"time"
 )
 
+func (controller *Controller) operatorCanBeStopped(operator operatorEntities.Operator) bool {
+	operatorID := operator.Config.OperatorIDs.OperatorId
+	logging.Logger.Debugf("Operator State is: %s", operator.State)
+	if operator.State == "starting" {
+		logging.Logger.Debugf("Operator %s is starting. Dont stop until finished", operatorID)
+		return false
+	}
+
+	if operator.State == "stopping" {
+		logging.Logger.Debugf("Operator %s is already stopping.", operatorID)
+		return false
+	}
+	return true
+}
+
+func (controller *Controller) RemoveStoppedContainer(operator operatorEntities.Operator) error {
+	if operator.State == "stopped" {
+		// operator was stopped by the agent but response did not reach master, so it got not deleted
+		if err := controller.DB.DeleteOperator(operator.Config.OperatorIDs.OperatorId); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (controller *Controller) stopOperator(command operatorEntities.StopOperatorControlCommand) error {
 	operator := operatorEntities.Operator{}
 	operatorID := command.OperatorId
-	loops := 0
 
 	if err := controller.DB.GetOperator(operatorID, &operator); err != nil {
 		logging.Logger.Errorf("Cant load operator %s after receving stop command: %s", operatorID, err)
 		return err
 	}
 
-	logging.Logger.Debugf("Operator State is: %s", operator.State)
-	if operator.State == "starting" {
-		// There might be nothing to stop
-		logging.Logger.Debugf("Operator %s is in starting state", operatorID)
-		return errors.New("Operator is starting. Try again after it is started.")
+	if !controller.operatorCanBeStopped(operator) {
+		return nil
 	}
 
-	agentID := operator.Agent
-
-	operator.State = "stopping"
-	if err := controller.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Error saving operator after receiving stop command: %s", err)
+	err := controller.RemoveStoppedContainer(operator)
+	if err != nil {
 		return err
 	}
 
-	stopOperatorAgent := operatorEntities.StopOperatorAgentControlCommand{
+	agentID := operator.Agent
+	stopOperatorAgentCommand := operatorEntities.StopOperatorAgentControlCommand{
 		DeploymentReference: operator.DeploymentReference,
 		OperatorID: operatorID,
 	}
-	stopOperatorAgentMsg, err := json.Marshal(stopOperatorAgent)
+	stopOperatorAgentMsg, err := json.Marshal(stopOperatorAgentCommand)
 	if err != nil {
 		logging.Logger.Errorf("Cant marshal stop command")
 		return err
 	}
 
 	logging.Logger.Debugf("Try to stop operator %s at agent %s", operatorID, agentID)
+	logging.Logger.Debugf("Send stop command to agent: %s", agentID)
+	controller.Client.Publish(agentEntities.GetStopOperatorAgentTopic(agentID), string(stopOperatorAgentMsg), 2)
+	
+	// Mark as stopping after first publish!
+	operator.State = "stopping"
+	if err := controller.DB.SaveOperator(operator); err != nil {
+		logging.Logger.Errorf("Error saving operator after receiving stop command: %s", err)
+		return err
+	}
 
-	for loops <= controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Send stop command to agent: %s [%d/%d]", agentID, loops+1, controller.StartOperatorConfig.Retries+1)
-		controller.Client.Publish(agentEntities.GetStopOperatorAgentTopic(agentID), string(stopOperatorAgentMsg), 2)
-
-		if controller.checkOperatorWasStopped(operatorID) {
-			logging.Logger.Debugf("Agent %s stopped operator %s successfully\n", agentID, operatorID)
-			if err := controller.DB.DeleteOperator(operatorID); err != nil {
-				return err
-			}
-			logging.Logger.Debugf("Deleted operator: %s successfully\n", operatorID)
-			return nil
+	if controller.checkOperatorWasStopped(operatorID) {
+		logging.Logger.Debugf("Agent %s stopped operator %s successfully\n", agentID, operatorID)
+		if err := controller.DB.DeleteOperator(operatorID); err != nil {
+			return err
 		}
-		loops++
-		time.Sleep(time.Duration(controller.StartOperatorConfig.Timeout) * time.Second)
+		logging.Logger.Debugf("Deleted operator: %s successfully\n", operatorID)
+		return nil
 	}
 
 	return nil

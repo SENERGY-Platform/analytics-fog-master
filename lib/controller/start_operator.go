@@ -14,6 +14,7 @@ func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operat
 	operator := operatorEntities.Operator{}
 	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator)
 	if err != nil {
+		// file not exists == not deployed so far
 		return false
 	}
 
