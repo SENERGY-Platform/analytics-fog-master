@@ -3,23 +3,39 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"math/rand"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
-
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
-
-	"time"
 )
 
-func (controller *Controller) operatorIsAlreadyDeployed(operatorRequest operatorEntities.Operator) bool {
+func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operatorEntities.StartOperatorControlCommand) bool {
 	operator := operatorEntities.Operator{}
 	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator)
 	if err != nil {
 		return false
 	}
 
-	if operator.Config.OperatorIDs.OperatorId == operatorRequest.Config.OperatorIDs.OperatorId && operator.Config.OperatorIDs.PipelineId == operatorRequest.Config.OperatorIDs.PipelineId {
+	requestedOperatorID := command.Config.OperatorIDs.OperatorId
+	requestedPipelineID := command.Config.OperatorIDs.PipelineId
+	if operator.Config.OperatorIDs.OperatorId != requestedOperatorID && operator.Config.OperatorIDs.PipelineId != requestedPipelineID {
+		return false
+	}
+	
+	opState := operator.State
+	if opState == "starting" {
+		logging.Logger.Debugf("Operator %s (Pipeline: %s) is starting. Dont start until response from agent", requestedOperatorID, requestedPipelineID)
+		return true
+	} 
+	
+	if opState == "started" {
+		logging.Logger.Debugf("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID)
+		return true
+	}
+	
+	if opState == "stopping" {
+		logging.Logger.Debugf("Operator %s (Pipeline: %s) is stopping. Dont start until done", requestedOperatorID, requestedPipelineID)
 		return true
 	}
 
@@ -27,119 +43,66 @@ func (controller *Controller) operatorIsAlreadyDeployed(operatorRequest operator
 }
 
 func (controller *Controller) startOperator(command operatorEntities.StartOperatorControlCommand) error {
+	/* 
+		To start an operator, first an agent has to be selected.
+		Then, the start command is sent to the agent.
+		As we the request is async, we will get the response from the agent eventually
+		Caution: Duplicate start commands will lead to duplicate deployments.
+		Keep in mind, that there is sync process with the platform which will also lead to new start commands
+	*/
+	operatorID := command.Config.OperatorIDs.OperatorId
+	pipelineID := command.Config.OperatorIDs.PipelineId
+
+	operatorIsDeployed := controller.operatorIsAlreadyDeployedOrStopping(command)
+	if operatorIsDeployed {
+		return nil
+	}
+
+	agents := controller.DB.GetAllAgents()
+	if len(agents) == 0 {
+		logging.Logger.Debug("No agents available")
+		return errors.New("No agents available")
+	}
+	
+	var activeAgents []agentEntities.Agent
+	for _, agent := range agents {
+		if agent.Active {
+			activeAgents = append(activeAgents, agent)
+		}
+	}
+	if len(activeAgents) == 0 {
+		/* It will be retried with the next sync anyways. We could think of enabling this part again, 
+		but keep in mind that it could create duplicate deployments if no check is done whether operator is currently starting 
+		logging.Logger.Debug("No active agents available, retrying in 10 seconds")
+		time.Sleep(10 * time.Second)
+		controller.StartOperator(command)*/
+		return errors.New("No active agents available")
+	} 
+
+	agent := controller.SelectAgent(activeAgents)
+	
+	logging.Logger.Debugf("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id)
+	commandValue, err := json.Marshal(command)
+	if err != nil {
+		logging.Logger.Errorf("Error marshalling start command: %s", err)
+		return err
+	}
+	controller.Client.Publish(agentEntities.GetStartOperatorAgentTopic(agent.Id), string(commandValue), 2)
+
 	operator := operatorEntities.Operator{
 		StartOperatorControlCommand: command,
 		State:                "starting",
 	}
-
-	operatorIsDeployed := controller.operatorIsAlreadyDeployed(operator)
-	if operatorIsDeployed {
-		logging.Logger.Debugf("Operator is already deployed")
-		return nil
-	}
-
 	if err := controller.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Error saving operator after receiving start command: %s", err)
+		logging.Logger.Errorf("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
 		return err
 	}
 
-	agents := controller.DB.GetAllAgents()
-	if len(agents) > 0 {
-		var activeAgents []agentEntities.Agent
-		for _, agent := range agents {
-			if agent.Active {
-				activeAgents = append(activeAgents, agent)
-			}
-		}
-		if len(activeAgents) == 0 {
-			logging.Logger.Debug("No active agents available, retrying in 10 seconds")
-			time.Sleep(10 * time.Second)
-			controller.StartOperator(command)
-		} else {
-			for _, agent := range activeAgents {
-				logging.Logger.Debugf("Try to start operator at agent %s", agent.Id)
-				operatorStarted, err := controller.startOperatorAtAgent(command, agent.Id)
-				if err != nil {
-					logging.Logger.Errorf("Operator could not be started: %s", err)
-					return err
-				}
-				if !operatorStarted {
-					logging.Logger.Debugf("Agent %s did not deploy operator -> try next agent\n", agent.Id)
-					continue
-				}
-
-				logging.Logger.Debugf("Operator was started")
-				return nil
-			}
-		}
-	} else {
-		logging.Logger.Debug("No agents available")
-	}
+	logging.Logger.Debugf("Operator %s (Pipeline: %s) was started", operatorID, pipelineID)
 	return nil
 }
 
-func (controller *Controller) startOperatorAtAgent(command operatorEntities.StartOperatorControlCommand, agentId string) (bool, error) {
-	loops := 0
-	commandValue, err := json.Marshal(command)
-	if err != nil {
-		logging.Logger.Errorf("Error marshalling start command: %s", err)
-		return false, err
-	}
-
-	for loops <= controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Send start command to agent: %s [%d/%d]", agentId, loops+1, controller.StartOperatorConfig.Retries+1)
-		controller.Client.Publish(agentEntities.GetStartOperatorAgentTopic(agentId), string(commandValue), 2)
-		operatorID := command.Config.OperatorId
-		operatorStarted, err := controller.checkOperatorDeployed(operatorID) 
-		if err != nil {
-			return false, err 
-		}	
-
-		if operatorStarted {
-			logging.Logger.Debugf("Agent %s deployed operator %s successfully\n", agentId, operatorID)
-			return true, nil
-		}
-		loops++
-		time.Sleep(time.Duration(controller.StartOperatorConfig.Timeout) * time.Second)
-	}
-
-	return false, nil
-
-	// TODO send stop message in case it got depoyed after the timeout
-}
-
-func (controller *Controller) checkOperatorDeployed(operatorId string) (created bool, err error) {
-	created = false
-	loops := 0
-	operator := operatorEntities.Operator{}
-	for loops <= controller.StartOperatorConfig.Retries {
-		logging.Logger.Debugf("Check if operator %s was deployed [%d/%d]", operatorId, loops+1, controller.StartOperatorConfig.Retries+1)
-
-		if err = controller.DB.GetOperator(operatorId, &operator); err != nil {
-			logging.Logger.Errorf("Cant get operator from DB: %s", err)
-			return 
-		} else {
-			logging.Logger.Debugf("Operator State is: %s", operator.State)
-			if operator.State == "started" {
-				// Agent deployed operator -> remove response so that later events like stopping can be set
-				created = true
-				operator.Event = operatorEntities.OperatorAgentResponse{}
-				if err = controller.DB.SaveOperator(operator); err != nil {
-					logging.Logger.Error(err)
-					return
-				}
-				return
-			} else if operator.State == "stopping" {
-				// operator state can be started, then stop request comes, override state to stopping or stopped, start retry loop does not get stopped as check happened after override
-				logging.Logger.Debugf("Operator is stopping -> dont retry")
-				err = errors.New("Operator is in stopping state -> no need to retry")
-				return
-			} else if operator.State == "stopped" {
-				logging.Logger.Debugf("Operator is stopped -> restart")
-			}
-		}
-		loops++
-		time.Sleep(time.Duration(controller.StartOperatorConfig.Timeout) * time.Second)
-	}
-	return
+func (controller *Controller) SelectAgent(activeAgents []agentEntities.Agent) agentEntities.Agent {
+	randomIdx := rand.Intn(len(activeAgents))
+	return activeAgents[randomIdx]
 }

@@ -80,7 +80,7 @@ func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOper
 		err := master.DB.GetOperator(operatorStartCmd.Config.OperatorId, &op)
 		if err != nil {
 			// operator does not exists
-			// TODO: better way to check
+			// TODO: use sqlite as db
 			logging.Logger.Debug("Start missing operator:" + operatorStartCmd.Config.OperatorId)
 			master.StartOperator(operatorStartCmd)
 		}
