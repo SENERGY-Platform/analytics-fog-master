@@ -49,19 +49,30 @@ func (master *Master) HandleAgentStartOperatorResponse(response operatorEntities
 func (master *Master) HandleAgentStopOperatorResponse(response operatorEntities.StopOperatorAgentResponse) {
 	logging.Logger.Debugf("Handle agent response to stop operator command")
 	operator := operatorEntities.Operator{}
+	operatorID := response.OperatorId
 
-	err := master.DB.GetOperator(response.OperatorId, &operator)
+	err := master.DB.GetOperator(operatorID, &operator)
 	if err != nil {
-		logging.Logger.Errorf("Cant load operator from DB: ", err)
+		logging.Logger.Errorf("Cant load operator %s from DB: %w", operatorID, err)
 		return
 	}
 
-	operator.Agent = response.Agent.Id
-	operator.State = response.OperatorState
+	newOperatorState := response.OperatorState
 
-	if err := master.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Cant save new operator state: ", err)
+	if newOperatorState == "not stopped" {
+		operator.Agent = response.Agent.Id
+		operator.State = newOperatorState
+		if err := master.DB.SaveOperator(operator); err != nil {
+			logging.Logger.Errorf("Cant save new operator %s: %w", operatorID, err)
+		}
 	}
+
+	if newOperatorState == "stopped" {
+		if err := master.DB.DeleteOperator(operator.Config.OperatorIDs.OperatorId); err != nil {
+			logging.Logger.Errorf("Cant delete operator %s: %w", operatorID, err)
+		}
+	}
+
 }
 
 
