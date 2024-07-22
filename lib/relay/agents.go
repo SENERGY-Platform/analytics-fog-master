@@ -19,6 +19,6 @@ func (relay *RelayController) processAgentsCommand(message []byte) {
 		err = relay.Master.RegisterAgent(agentMessage.Conf)
 	case "pong":
 		fmt.Println("Received Pong")
-		err = relay.Master.PongAgent(agentMessage.Conf)
+		err = relay.Master.PongAgent(agentMessage)
 	}
 }

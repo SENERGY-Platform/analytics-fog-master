@@ -11,11 +11,17 @@ type StartOperatorConfig struct {
 	Timeout int `json:"timeout_start_operator" env_var:"TIMEOUT_START_OPERATOR"`
 }
 
+type DataBaseConfig struct {
+	Timeout int `json:"timeout" env_var:"DATABASE_TIMEOUT"`
+	ConnectionURL       string `json:"url" env_var:"DATABASE_URL"`
+}
+
 type Config struct {
 	Broker              mqtt.FogBrokerConfig
 	StartOperatorConfig StartOperatorConfig
 	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
 	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
+	DataBase DataBaseConfig
 }
 
 func NewConfig(path string) (*Config, error) {

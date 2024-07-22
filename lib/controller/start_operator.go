@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/rand"
@@ -11,32 +12,32 @@ import (
 )
 
 func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operatorEntities.StartOperatorControlCommand) bool {
-	operator := operatorEntities.Operator{}
-	err := controller.DB.GetOperator(operator.StartOperatorControlCommand.Config.OperatorId, &operator)
+	ctx := context.Background()
+	operator, err := controller.DB.GetOperator(ctx, command.OperatorIDs.PipelineId, command.OperatorIDs.OperatorId)
 	if err != nil {
 		// file not exists == not deployed so far
 		return false
 	}
 
-	requestedOperatorID := command.Config.OperatorIDs.OperatorId
-	requestedPipelineID := command.Config.OperatorIDs.PipelineId
-	if operator.Config.OperatorIDs.OperatorId != requestedOperatorID && operator.Config.OperatorIDs.PipelineId != requestedPipelineID {
+	requestedOperatorID := command.OperatorIDs.OperatorId
+	requestedPipelineID := command.OperatorIDs.PipelineId
+	if operator.OperatorIDs.OperatorId != requestedOperatorID && operator.OperatorIDs.PipelineId != requestedPipelineID {
 		return false
 	}
 	
-	opState := operator.State
+	opState := operator.DeploymentState
 	if opState == "starting" {
-		logging.Logger.Debugf("Operator %s (Pipeline: %s) is starting. Dont start until response from agent", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug("Operator %s (Pipeline: %s) is starting. Dont start until response from agent", requestedOperatorID, requestedPipelineID)
 		return true
 	} 
 	
 	if opState == "started" {
-		logging.Logger.Debugf("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID)
 		return true
 	}
 	
 	if opState == "stopping" {
-		logging.Logger.Debugf("Operator %s (Pipeline: %s) is stopping. Dont start until done", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug("Operator %s (Pipeline: %s) is stopping. Dont start until done", requestedOperatorID, requestedPipelineID)
 		return true
 	}
 
@@ -51,15 +52,16 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		Caution: Duplicate start commands will lead to duplicate deployments.
 		Keep in mind, that there is sync process with the platform which will also lead to new start commands
 	*/
-	operatorID := command.Config.OperatorIDs.OperatorId
-	pipelineID := command.Config.OperatorIDs.PipelineId
+	operatorID := command.OperatorIDs.OperatorId
+	pipelineID := command.OperatorIDs.PipelineId
 
 	operatorIsDeployed := controller.operatorIsAlreadyDeployedOrStopping(command)
 	if operatorIsDeployed {
 		return nil
 	}
 
-	agents := controller.DB.GetAllAgents()
+	ctx := context.Background()
+	agents, err := controller.DB.GetAllAgents(ctx)
 	if len(agents) == 0 {
 		logging.Logger.Debug("No agents available")
 		return errors.New("No agents available")
@@ -82,24 +84,24 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 
 	agent := controller.SelectAgent(activeAgents)
 	
-	logging.Logger.Debugf("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id)
+	logging.Logger.Debug("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id)
 	commandValue, err := json.Marshal(command)
 	if err != nil {
-		logging.Logger.Errorf("Error marshalling start command: %s", err)
+		logging.Logger.Error("Error marshalling start command: %s", err)
 		return err
 	}
 	controller.Client.Publish(agentEntities.GetStartOperatorAgentTopic(agent.Id), string(commandValue), 2)
 
 	operator := operatorEntities.Operator{
+		DeploymentState:                "starting",
 		StartOperatorControlCommand: command,
-		State:                "starting",
 	}
-	if err := controller.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
+	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+		logging.Logger.Error("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
 		return err
 	}
 
-	logging.Logger.Debugf("Operator %s (Pipeline: %s) was started", operatorID, pipelineID)
+	logging.Logger.Debug("Operator %s (Pipeline: %s) was started", operatorID, pipelineID)
 	return nil
 }
 

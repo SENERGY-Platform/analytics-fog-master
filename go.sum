@@ -26,10 +26,18 @@ github.com/SENERGY-Platform/analytics-fog-lib v1.0.15 h1:gKLosrwhse+hTXXrCCYdViA
 github.com/SENERGY-Platform/analytics-fog-lib v1.0.15/go.mod h1:WVm6fWbrcAKJ2V+rUXlKQNnVp8bd+11AYJxSlxA6F+Q=
 github.com/SENERGY-Platform/analytics-fog-lib v1.1.4 h1:t2P3asYRuGko6qWRGraA1WboafZcpMhVOgtqFCyOuFo=
 github.com/SENERGY-Platform/analytics-fog-lib v1.1.4/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.18 h1:K9muBGP9MHl+iVua7IYhGpcSe9u3cjE7PbpBkorFwGk=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.18/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.19 h1:gOvAq0WX197AL9+m1Iofeo6D6FdO/HBs/ar8FaAcGFs=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.19/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.20 h1:bDOvuPKH7Ht+LhKOUg4jA1LNJTYSA42ULP/8XumbJdA=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.20/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
 github.com/SENERGY-Platform/go-service-base v0.13.0 h1:1ytMAd84TO6+gvffjITShTOPStJiP7rSly9lG09fzxU=
 github.com/SENERGY-Platform/go-service-base v0.13.0/go.mod h1:NyMDXzkC/5oRzaMZ1wbFlXTnLoyo3CXM8q1eSloMuBo=
 github.com/SENERGY-Platform/go-service-base/util v0.14.0 h1:oMzPR6zrbHPPgcMi39rDnM3qXh4shP03JRfSyDnnMlw=
 github.com/SENERGY-Platform/go-service-base/util v0.14.0/go.mod h1:uYeWyyknGyxfAx4zvnhppDVjeTfVWOAIMps5mJeaDwU=
+github.com/SENERGY-Platform/go-service-base/watchdog v0.4.1 h1:DiTETrKnnN8gHfxr0m6A+f8Nd54DD6yZmKL5Oi0qF6E=
+github.com/SENERGY-Platform/go-service-base/watchdog v0.4.1/go.mod h1:B28QtfgfMvOGIcQRklRQkPmXArdHyocy8soE7UoSIKU=
 github.com/eclipse/paho.mqtt.golang v1.4.3 h1:2kwcUGn8seMUfWndX0hGbvH8r7crgcJguQNCyp70xik=
 github.com/eclipse/paho.mqtt.golang v1.4.3/go.mod h1:CSYvoAlsMkhYOXh/oKyxa8EcBci6dVkLCbo5tTC1RIE=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
@@ -38,6 +46,8 @@ github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 h1:EFT6MH3igZK/dI
 github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25/go.mod h1:sWkGw/wsaHtRsT9zGQ/WyJCotGWG/Anow/9hsAcBWRw=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
+github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975 h1:zm/Rb2OsnLWCY88Njoqgo4X6yt/lx3oBNWhepX0AOMU=
 github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975/go.mod h1:4Mct/lWCFf1jzQTTAaWtOI7sXqmG+wBeiBfT4CxoaJk=
 github.com/y-du/go-env-loader v0.5.1 h1:0BHxc4A+jkWrbyO7XbfvR9xb8/W/0OIeLGCsX+4cUzg=

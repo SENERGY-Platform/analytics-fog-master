@@ -4,11 +4,11 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
-	log_level "github.com/y-du/go-log-level"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"log/slog"
 )
 
-func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *log_level.Logger) *mqtt.MQTTClient {
+func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *slog.Logger) *mqtt.MQTTClient {
 	topics := map[string]byte{
 		operator.StartOperatorFogTopic:   byte(2),
 		operator.StopOperatorFogTopic:   byte(2),
@@ -23,6 +23,7 @@ func NewMQTTClient(brokerConfig mqtt.BrokerConfig, logger *log_level.Logger) *mq
 		TopicConfig: topics,
 		Logger:      logger,
 		OnConnectHandler: OnConnectFog,
+		SubscribeInitial: true,
 	}
 }
 

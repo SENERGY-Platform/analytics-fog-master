@@ -17,6 +17,8 @@
 package master
 
 import (
+	"context"
+
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
@@ -28,48 +30,49 @@ func (master *Master) PublishMessage(topic string, message string, qos int) {
 }
 
 func (master *Master) HandleAgentStartOperatorResponse(response operatorEntities.StartOperatorAgentResponse) {
-	logging.Logger.Debugf("Handle agent response to start operator command")
-	operator := operatorEntities.Operator{}
-
-	err := master.DB.GetOperator(response.OperatorId, &operator)
+	logging.Logger.Debug("Handle agent response to start operator command")
+	ctx := context.Background()
+	operator, err := master.DB.GetOperator(ctx, response.PipelineId, response.OperatorId)
 	if err != nil {
-		logging.Logger.Errorf("Cant load operator from DB: ", err)
+		logging.Logger.Error("Cant load operator from DB: ", err)
 		return
 	}
 
-	operator.Agent = response.Agent.Id
-	operator.State = response.OperatorState
-	operator.DeploymentReference = response.ContainerId
+	operator.AgentId = response.AgentId
+	operator.DeploymentState = response.DeploymentState
+	operator.ContainerId = response.ContainerId
 
-	if err := master.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Cant save new operator state: ", err)
+	if err := master.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+		logging.Logger.Error("Cant save new operator state: ", err)
 	}
 }
 
 func (master *Master) HandleAgentStopOperatorResponse(response operatorEntities.StopOperatorAgentResponse) {
-	logging.Logger.Debugf("Handle agent response to stop operator command")
+	logging.Logger.Debug("Handle agent response to stop operator command")
 	operator := operatorEntities.Operator{}
 	operatorID := response.OperatorId
+	pipelineID := response.PipelineId
+	ctx := context.Background()
 
-	err := master.DB.GetOperator(operatorID, &operator)
+	operator, err := master.DB.GetOperator(ctx, pipelineID, operatorID)
 	if err != nil {
-		logging.Logger.Errorf("Cant load operator %s from DB: %w", operatorID, err)
+		logging.Logger.Error("Cant load operator %s from DB: %w", operatorID, err)
 		return
 	}
 
-	newOperatorState := response.OperatorState
+	newOperatorState := response.DeploymentState
 
 	if newOperatorState == "not stopped" {
-		operator.Agent = response.Agent.Id
-		operator.State = newOperatorState
-		if err := master.DB.SaveOperator(operator); err != nil {
-			logging.Logger.Errorf("Cant save new operator %s: %w", operatorID, err)
+		operator.AgentId = response.AgentId
+		operator.DeploymentState = newOperatorState
+		if err := master.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+			logging.Logger.Error("Cant save new operator %s: %w", operatorID, err)
 		}
 	}
 
 	if newOperatorState == "stopped" {
-		if err := master.DB.DeleteOperator(operator.Config.OperatorIDs.OperatorId); err != nil {
-			logging.Logger.Errorf("Cant delete operator %s: %w", operatorID, err)
+		if err := master.DB.DeleteOperator(ctx, pipelineID, operatorID); err != nil {
+			logging.Logger.Error("Cant delete operator %s: %w", operatorID, err)
 		}
 	}
 
@@ -86,13 +89,15 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 
 func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOperatorControlCommand) {
 	logging.Logger.Debug("Start missing operators")
+	ctx := context.Background()
 	for _, operatorStartCmd := range(syncMsg) {
-		op := operatorEntities.Operator{}
-		err := master.DB.GetOperator(operatorStartCmd.Config.OperatorId, &op)
+		operatorID := operatorStartCmd.OperatorIDs.OperatorId
+		pipelineID := operatorStartCmd.OperatorIDs.PipelineId
+		_, err := master.DB.GetOperator(ctx, pipelineID, operatorID)
 		if err != nil {
 			// operator does not exists
 			// TODO: use sqlite as db
-			logging.Logger.Debug("Start missing operator:" + operatorStartCmd.Config.OperatorId)
+			logging.Logger.Debug("Start missing operator:" + operatorStartCmd.OperatorIDs.OperatorId)
 			master.StartOperator(operatorStartCmd)
 		}
 	}
@@ -103,16 +108,17 @@ func (master *Master) stopOperatorOrphans(syncMsg []operatorEntities.StartOperat
 	logging.Logger.Debug("Stop orphan operators")
 	expectedOperatorIDs := map[string]string{}
 	for _, operatorStartCmd := range(syncMsg) {
-		expectedOperatorIDs[operatorStartCmd.Config.OperatorId] = ""
+		expectedOperatorIDs[operatorStartCmd.OperatorIDs.OperatorId] = ""
 	}
-	logging.Logger.Debugf("Expected operators %+v", expectedOperatorIDs)
+	logging.Logger.Debug("Expected operators %+v", expectedOperatorIDs)
 
-	currentOperatorIDs, err := master.DB.GetOperatorIDs()
+	ctx := context.Background()
+	currentOperatorIDs, err := master.DB.GetOperatorIDs(ctx)
 	if err != nil {
-		logging.Logger.Errorf("Cant load current operators: " + err.Error())
+		logging.Logger.Error("Cant load current operators: " + err.Error())
 		return
 	}
-	logging.Logger.Debugf("Current operators %+v", currentOperatorIDs)
+	logging.Logger.Debug("Current operators %+v", currentOperatorIDs)
 
 	for _, operatorID := range(currentOperatorIDs) {
 		_, contains := expectedOperatorIDs[operatorID]

@@ -18,23 +18,20 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"os"
 	"syscall"
 
 	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
-
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
-	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
 	sb_util "github.com/SENERGY-Platform/go-service-base/util"
+	"github.com/SENERGY-Platform/go-service-base/watchdog"
 	"github.com/joho/godotenv"
 )
 
@@ -46,42 +43,46 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Print("Error loading .env file")
+		log.Printf("Error loading .env file: ", err)
+		ec = 1
+		return
 	}
 
 	config, err := config.NewConfig("")
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Cant load config: ", err)
+		ec = 1
+		return
 	}
-
-	logFile, err := logging.InitLogger(config.Logger)
+	
+	err = logging.InitLogger(os.Stdout, true)
 	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		var logFileError *srv_base.LogFileError
-		if errors.As(err, &logFileError) {
-			ec = 1
-			return
-		}
+		log.Printf("Error init logging: %s", err.Error())
+		ec = 1
+		return
 	}
-	if logFile != nil {
-		defer logFile.Close()
-	}
-	logging.Logger.Debugf("config: %s", sb_util.ToJsonStr(config))
 
-	logging.Logger.Debug("Init DB")
-	database, err := db.NewFileDatabase(config.DataDir)
+	logging.Logger.Debug("config: %s", sb_util.ToJsonStr(config))
+
+	logging.Logger.Debug("Create new database at " + config.DataBase.ConnectionURL)
+	db, err := storage.NewDB(config.DataBase.ConnectionURL)
 	if err != nil {
-		logging.Logger.Error(err)
+		logging.Logger.Error("Cant init DB", "error", err.Error())
+		ec = 1
+		return
 	}
+	defer db.Close()
 
-	watchdog := srv_base.NewWatchdog(logging.Logger, syscall.SIGINT, syscall.SIGTERM)
+	storageHandler := storage.New(db)
+
+	watchdog := watchdog.New(syscall.SIGINT, syscall.SIGTERM)
 
 	fogMQTTConfig := mqttLib.BrokerConfig(config.Broker)
 
 	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	operatorController := controller.NewController(ctx, mqttClient, database, config.StartOperatorConfig)
+	operatorController := controller.NewController(ctx, mqttClient, storageHandler, config.StartOperatorConfig)
 	go operatorController.Start()
 	watchdog.RegisterStopFunc(func() error {
 		cancel()
@@ -89,9 +90,9 @@ func main() {
 	})
 
 
-	master := master.NewMaster(mqttClient, database, operatorController)
+	master := master.NewMaster(mqttClient, storageHandler, operatorController)
 	relayController := relay.NewRelayController(master)
-	mqttClient.SetRelayController(relayController)
+	mqttClient.SetSubscriptionHandler(relayController)
 	
 	logging.Logger.Debug("Connect MQTT")
 	mqttClient.ConnectMQTTBroker(nil, nil)

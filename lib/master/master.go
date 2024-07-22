@@ -6,7 +6,7 @@ import (
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
 	masterLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/db"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
 
@@ -14,11 +14,11 @@ import (
 
 type Master struct {
 	Client              *mqtt.MQTTClient
-	DB                  db.DB
+	DB                  storage.DB
 	OperatorController *controller.Controller
 }
 
-func NewMaster(mqttClient *mqtt.MQTTClient, db db.DB, controller *controller.Controller) *Master {
+func NewMaster(mqttClient *mqtt.MQTTClient, db storage.DB, controller *controller.Controller) *Master {
 	return &Master{
 		Client:              mqttClient,
 		DB:                  db,

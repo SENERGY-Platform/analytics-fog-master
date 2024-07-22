@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -11,26 +12,28 @@ import (
 )
 
 func (controller *Controller) operatorCanBeStopped(operator operatorEntities.Operator) bool {
-	operatorID := operator.Config.OperatorIDs.OperatorId
-	logging.Logger.Debugf("Operator State is: %s", operator.State)
-	if operator.State == "starting" {
-		logging.Logger.Debugf("Operator %s is starting. Dont stop until finished", operatorID)
+	operatorID := operator.OperatorIDs.OperatorId
+	logging.Logger.Debug("Operator State is: %s", operator.DeploymentState)
+	if operator.DeploymentState == "starting" {
+		logging.Logger.Debug("Operator %s is starting. Dont stop until finished", operatorID)
 		return false
 	}
 
-	if operator.State == "stopping" {
-		logging.Logger.Debugf("Operator %s is already stopping.", operatorID)
+	if operator.DeploymentState == "stopping" {
+		logging.Logger.Debug("Operator %s is already stopping.", operatorID)
 		return false
 	}
 	return true
 }
 
 func (controller *Controller) stopOperator(command operatorEntities.StopOperatorControlCommand) error {
-	operator := operatorEntities.Operator{}
 	operatorID := command.OperatorId
+	pipelineID := command.PipelineId
+	ctx := context.Background()
 
-	if err := controller.DB.GetOperator(operatorID, &operator); err != nil {
-		logging.Logger.Errorf("Cant load operator %s after receving stop command: %s", operatorID, err)
+	operator, err := controller.DB.GetOperator(ctx, pipelineID, operatorID); 
+	if err != nil {
+		logging.Logger.Error("Cant load operator %s after receving stop command: %s", operatorID, err)
 		return err
 	}
 
@@ -38,28 +41,31 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 		return nil
 	}
 
-	agentID := operator.Agent
+	agentID := operator.AgentId
 	stopOperatorAgentCommand := operatorEntities.StopOperatorAgentControlCommand{
-		DeploymentReference: operator.DeploymentReference,
-		OperatorID: operatorID,
+		ContainerId: operator.ContainerId,
+		OperatorIDs: operatorEntities.OperatorIDs{
+			OperatorId: operatorID,
+			PipelineId: command.PipelineId,
+		},
 	}
 	stopOperatorAgentMsg, err := json.Marshal(stopOperatorAgentCommand)
 	if err != nil {
-		logging.Logger.Errorf("Cant marshal stop command")
+		logging.Logger.Error("Cant marshal stop command: %s", err.Error())
 		return err
 	}
 
-	logging.Logger.Debugf("Try to stop operator %s at agent %s", operatorID, agentID)
-	logging.Logger.Debugf("Send stop command to agent: %s", agentID)
+	logging.Logger.Debug("Try to stop operator %s at agent %s", operatorID, agentID)
+	logging.Logger.Debug("Send stop command to agent: %s", agentID)
 	err = controller.Client.Publish(agentEntities.GetStopOperatorAgentTopic(agentID), string(stopOperatorAgentMsg), 2)
 	if err != nil {
 		return fmt.Errorf("Cant publish operator stop command: %w", err)
 	}
 
 	// Mark as stopping after publish!
-	operator.State = "stopping"
-	if err := controller.DB.SaveOperator(operator); err != nil {
-		logging.Logger.Errorf("Error saving operator after receiving stop command: %s", err)
+	operator.DeploymentState = "stopping"
+	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+		logging.Logger.Error("Error saving operator after receiving stop command: %s", err)
 		return err
 	}
 
