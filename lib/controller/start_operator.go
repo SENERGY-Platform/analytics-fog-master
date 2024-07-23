@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
@@ -11,37 +12,36 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 )
 
-func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operatorEntities.StartOperatorControlCommand) bool {
+func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operatorEntities.StartOperatorControlCommand) (bool, error) {
 	ctx := context.Background()
-	operator, err := controller.DB.GetOperator(ctx, command.OperatorIDs.PipelineId, command.OperatorIDs.OperatorId)
+	operator, err := controller.DB.GetOperator(ctx, command.OperatorIDs.PipelineId, command.OperatorIDs.OperatorId, nil)
 	if err != nil {
-		// file not exists == not deployed so far
-		return false
+		return false, err
 	}
 
 	requestedOperatorID := command.OperatorIDs.OperatorId
 	requestedPipelineID := command.OperatorIDs.PipelineId
 	if operator.OperatorIDs.OperatorId != requestedOperatorID && operator.OperatorIDs.PipelineId != requestedPipelineID {
-		return false
+		return false, nil
 	}
 	
 	opState := operator.DeploymentState
 	if opState == "starting" {
 		logging.Logger.Debug("Operator %s (Pipeline: %s) is starting. Dont start until response from agent", requestedOperatorID, requestedPipelineID)
-		return true
+		return true, nil
 	} 
 	
 	if opState == "started" {
 		logging.Logger.Debug("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID)
-		return true
+		return true, nil
 	}
 	
 	if opState == "stopping" {
 		logging.Logger.Debug("Operator %s (Pipeline: %s) is stopping. Dont start until done", requestedOperatorID, requestedPipelineID)
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
 
 func (controller *Controller) startOperator(command operatorEntities.StartOperatorControlCommand) error {
@@ -55,13 +55,16 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	operatorID := command.OperatorIDs.OperatorId
 	pipelineID := command.OperatorIDs.PipelineId
 
-	operatorIsDeployed := controller.operatorIsAlreadyDeployedOrStopping(command)
+	operatorIsDeployed, err := controller.operatorIsAlreadyDeployedOrStopping(command)
+	if err != nil {
+		return err
+	}
 	if operatorIsDeployed {
 		return nil
 	}
 
 	ctx := context.Background()
-	agents, err := controller.DB.GetAllAgents(ctx)
+	agents, err := controller.DB.GetAllAgents(ctx, nil)
 	if len(agents) == 0 {
 		logging.Logger.Debug("No agents available")
 		return errors.New("No agents available")
@@ -84,7 +87,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 
 	agent := controller.SelectAgent(activeAgents)
 	
-	logging.Logger.Debug("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id)
+	logging.Logger.Debug(fmt.Sprintf("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id))
 	commandValue, err := json.Marshal(command)
 	if err != nil {
 		logging.Logger.Error("Error marshalling start command: %s", err)
@@ -96,7 +99,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		DeploymentState:                "starting",
 		StartOperatorControlCommand: command,
 	}
-	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+	if err := controller.DB.CreateOrUpdateOperator(ctx, operator, nil); err != nil {
 		logging.Logger.Error("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
 		return err
 	}

@@ -2,7 +2,8 @@
 
 CREATE TABLE agents (
   id varchar(255) NOT NULL,
-  last_update DATETIME,
+  updated DATETIME,
+  active BOOLEAN,
   PRIMARY KEY(id)
 );
 

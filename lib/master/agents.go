@@ -3,6 +3,7 @@ package master
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	agentLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
@@ -16,7 +17,7 @@ import (
 func (master *Master) CheckAgents() error {
 	ctx := context.Background()
 	for {
-		agents, err := master.DB.GetAllAgents(ctx)
+		agents, err := master.DB.GetAllAgents(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -46,7 +47,7 @@ func (master *Master) checkAgent(id string) {
 	ctx := context.Background()
 	for i := 0; i < 3; i++ {
 		time.Sleep(5 * time.Second)
-		agent, err := master.DB.GetAgent(ctx, id)
+		agent, err := master.DB.GetAgent(ctx, id, nil)
 		if err != nil {
 			logging.Logger.Error("Could not find agent record")
 			break
@@ -56,7 +57,7 @@ func (master *Master) checkAgent(id string) {
 			if agent.Active == true {
 				logging.Logger.Debug("Agent %s not reachable -> mark unactive\n", id)
 				agent.Active = false
-				if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
+				if err := master.DB.CreateOrUpdateAgent(ctx, agent, nil); err != nil {
 					logging.Logger.Error("Could not write agent record ", err)
 				}
 			}
@@ -64,7 +65,7 @@ func (master *Master) checkAgent(id string) {
 			if agent.Active == false {
 				logging.Logger.Debug("Agent %s reachable again -> mark active\n", id)
 				agent.Active = true
-				if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
+				if err := master.DB.CreateOrUpdateAgent(ctx, agent, nil); err != nil {
 					logging.Logger.Error("Could not write agent record ", err)
 				}
 			}
@@ -84,7 +85,8 @@ func (master *Master) RegisterAgent(agentConf agentLib.Configuration) error {
 		Updated: time.Now().UTC(),
 	}
 	ctx := context.Background()
-	if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
+	if err := master.DB.CreateOrUpdateAgent(ctx, agent, nil); err != nil {
+		err = fmt.Errorf("Cant register agent at db: %w", err)
 		logging.Logger.Error(err.Error())
 		return err
 	}
@@ -99,7 +101,7 @@ func (master *Master) PongAgent(pongMessage agentLib.AgentInfoMessage) error {
 		Updated: time.Now().UTC(),
 	}
 	ctx := context.Background()
-	if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
+	if err := master.DB.CreateOrUpdateAgent(ctx, agent, nil); err != nil {
 		logging.Logger.Error(err.Error())
 		return err
 	}
@@ -109,25 +111,29 @@ func (master *Master) PongAgent(pongMessage agentLib.AgentInfoMessage) error {
 
 func (master *Master) UpdateOperatorStates(operatorStates []agentLib.OperatorState) error {
 	for _, newOperatorState := range(operatorStates) {
+		logging.Logger.Debug("Update operator state from pong", "new state", newOperatorState)
 		operator := operatorEntities.Operator{}
 		operatorID := newOperatorState.OperatorID
 		pipelineID := newOperatorState.PipelineID
 		ctx := context.Background()
-		operator, err := master.DB.GetOperator(ctx, pipelineID, operatorID)
+		operator, err := master.DB.GetOperator(ctx, pipelineID, operatorID, nil)
 		if err != nil {
-			logging.Logger.Error("Cant load operator %s from DB: %w", operatorID, err)
+			// Also the case when agent sends state of an operator that the master does not know 
+			logging.Logger.Error(fmt.Sprintf("Cant load operator %s from DB: %s", operatorID, err.Error()))
 			return err
 		}
 		operator.DeploymentState = newOperatorState.State
 		operator.ContainerId = newOperatorState.ContainerID
 		if newOperatorState.State == "stopped" {
-			if err := master.DB.DeleteOperator(ctx, pipelineID, operatorID); err != nil {
+			logging.Logger.Debug("Operator is stopped -> Delete")
+			if err := master.DB.DeleteOperator(ctx, pipelineID, operatorID, nil); err != nil {
 				logging.Logger.Error("Cant delete operator %s: %w", operatorID, err)
 				return err
 			}
 			continue
 		}
-		if err := master.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
+		logging.Logger.Debug(fmt.Sprintf("Update operator: %+v", operator))
+		if err := master.DB.CreateOrUpdateOperator(ctx, operator, nil); err != nil {
 			logging.Logger.Error("Cant save new operator %s: %w", operatorID, err)
 		}
 	}
