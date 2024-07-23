@@ -31,7 +31,7 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 	pipelineID := command.PipelineId
 	ctx := context.Background()
 
-	operator, err := controller.DB.GetOperator(ctx, pipelineID, operatorID, nil); 
+	operator, err := controller.DB.GetOperator(ctx, pipelineID, operatorID); 
 	if err != nil {
 		logging.Logger.Error("Cant load operator %s after receving stop command: %s", operatorID, err)
 		return err
@@ -65,7 +65,7 @@ func (controller *Controller) stopOperator(command operatorEntities.StopOperator
 
 	// Mark as stopping after publish!
 	operator.DeploymentState = "stopping"
-	if err := controller.DB.CreateOrUpdateOperator(ctx, operator, nil); err != nil {
+	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
 		logging.Logger.Error("Error saving operator after receiving stop command", "error", err)
 		return err
 	}

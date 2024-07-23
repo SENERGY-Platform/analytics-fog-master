@@ -22,6 +22,7 @@ type Config struct {
 	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
 	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
 	DataBase DataBaseConfig
+	AgentSyncInterval int `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
 }
 
 func NewConfig(path string) (*Config, error) {

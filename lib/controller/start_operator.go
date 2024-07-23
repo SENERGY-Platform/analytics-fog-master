@@ -10,34 +10,34 @@ import (
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 )
 
 func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operatorEntities.StartOperatorControlCommand) (bool, error) {
 	ctx := context.Background()
-	operator, err := controller.DB.GetOperator(ctx, command.OperatorIDs.PipelineId, command.OperatorIDs.OperatorId, nil)
+	operator, err := controller.DB.GetOperator(ctx, command.OperatorIDs.PipelineId, command.OperatorIDs.OperatorId)
 	if err != nil {
+		if errors.Is(err, storage.NotFoundErr) {
+			return false, nil
+		}
 		return false, err
 	}
 
 	requestedOperatorID := command.OperatorIDs.OperatorId
 	requestedPipelineID := command.OperatorIDs.PipelineId
-	if operator.OperatorIDs.OperatorId != requestedOperatorID && operator.OperatorIDs.PipelineId != requestedPipelineID {
-		return false, nil
-	}
-	
 	opState := operator.DeploymentState
 	if opState == "starting" {
-		logging.Logger.Debug("Operator %s (Pipeline: %s) is starting. Dont start until response from agent", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is starting. Dont start until starting process finishes", requestedOperatorID, requestedPipelineID))
 		return true, nil
 	} 
 	
 	if opState == "started" {
-		logging.Logger.Debug("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID))
 		return true, nil
 	}
 	
 	if opState == "stopping" {
-		logging.Logger.Debug("Operator %s (Pipeline: %s) is stopping. Dont start until done", requestedOperatorID, requestedPipelineID)
+		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is stopping. Dont start until stopping process finishes", requestedOperatorID, requestedPipelineID))
 		return true, nil
 	}
 
@@ -56,7 +56,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	pipelineID := command.OperatorIDs.PipelineId
 
 	operatorIsDeployed, err := controller.operatorIsAlreadyDeployedOrStopping(command)
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.NotFoundErr) { 
 		return err
 	}
 	if operatorIsDeployed {
@@ -64,7 +64,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	}
 
 	ctx := context.Background()
-	agents, err := controller.DB.GetAllAgents(ctx, nil)
+	agents, err := controller.DB.GetAllAgents(ctx)
 	if len(agents) == 0 {
 		logging.Logger.Debug("No agents available")
 		return errors.New("No agents available")
@@ -86,25 +86,27 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	} 
 
 	agent := controller.SelectAgent(activeAgents)
-	
-	logging.Logger.Debug(fmt.Sprintf("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id))
+
 	commandValue, err := json.Marshal(command)
 	if err != nil {
-		logging.Logger.Error("Error marshalling start command: %s", err)
+		logging.Logger.Error("Error marshalling start command", "error", err)
 		return err
 	}
+	logging.Logger.Debug(fmt.Sprintf("Try to start operator %s (Pipeline: %s) at agent %s", operatorID, pipelineID, agent.Id))
 	controller.Client.Publish(agentEntities.GetStartOperatorAgentTopic(agent.Id), string(commandValue), 2)
 
+	logging.Logger.Debug("Set operator state to starting")
 	operator := operatorEntities.Operator{
 		DeploymentState:                "starting",
 		StartOperatorControlCommand: command,
+		AgentId: agent.Id,
 	}
-	if err := controller.DB.CreateOrUpdateOperator(ctx, operator, nil); err != nil {
+	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
 		logging.Logger.Error("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
 		return err
 	}
 
-	logging.Logger.Debug("Operator %s (Pipeline: %s) was started", operatorID, pipelineID)
+	logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) was started", operatorID, pipelineID))
 	return nil
 }
 
