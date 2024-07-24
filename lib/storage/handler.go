@@ -69,8 +69,9 @@ func (h *Handler) createOperator(ctx context.Context, operator operatorEntities.
 
 func (h *Handler) updateOperator(ctx context.Context, operator operatorEntities.Operator) error {
 	logging.Logger.Debug("Update Operator", "new operator", operator)
-    query := `UPDATE operators SET state = ?, container_id = ?, error = ? WHERE pipeline_id = ? AND operator_id = ?`
-    _, err := h.db.ExecContext(ctx, query, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId)
+	timeStr := timeToString(operator.TimeOfLastHeartbeat)
+    query := `UPDATE operators SET state = ?, container_id = ?, error = ?, time_of_last_heartbeat = ? WHERE pipeline_id = ? AND operator_id = ?`
+    _, err := h.db.ExecContext(ctx, query, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, timeStr, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId)
     if err != nil {
         return fmt.Errorf("updateOperator: %v", err)
     }
@@ -136,15 +137,21 @@ func (h *Handler) GetOperator(ctx context.Context, pipelineID, operatorID string
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	operator := operatorEntities.Operator{} 
-	row := h.db.QueryRowContext(ctx, "SELECT pipeline_id, operator_id, state, container_id, error, agent_id FROM operators WHERE pipeline_id == ? AND operator_id == ?", pipelineID, operatorID)
+	var timeOfLastHeartbeat sql.NullString
+	row := h.db.QueryRowContext(ctx, "SELECT pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat FROM operators WHERE pipeline_id == ? AND operator_id == ?", pipelineID, operatorID)
 
-	err := row.Scan(&operator.PipelineId, &operator.OperatorId, &operator.DeploymentState, &operator.ContainerId, &operator.DeploymentError, &operator.AgentId)
+	err := row.Scan(&operator.PipelineId, &operator.OperatorId, &operator.DeploymentState, &operator.ContainerId, &operator.DeploymentError, &operator.AgentId, &timeOfLastHeartbeat)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return operatorEntities.Operator{}, NotFoundErr
 		}
 		return operatorEntities.Operator{} , err
 	}
+	parsedHeartbeatTime, err := stringToTime(timeOfLastHeartbeat.String)
+	if err != nil {
+		return operatorEntities.Operator{}, err
+	}
+	operator.TimeOfLastHeartbeat = parsedHeartbeatTime
 	return operator, nil
 }
 
@@ -167,7 +174,7 @@ func (h *Handler) GetOperators(ctx context.Context) ([]operatorEntities.Operator
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	currentOperators := []operatorEntities.Operator{}
-	rows, err := h.db.QueryContext(ctx, "SELECT pipeline_id, operator_id, state, container_id, error, agent_id FROM operators")
+	rows, err := h.db.QueryContext(ctx, "SELECT pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat FROM operators")
 	if err != nil {
 		return currentOperators, err
 	}
@@ -175,15 +182,35 @@ func (h *Handler) GetOperators(ctx context.Context) ([]operatorEntities.Operator
 
 	for rows.Next() {  
         operator := operatorEntities.Operator{} 
-		if err := rows.Scan(&operator.PipelineId, &operator.OperatorId, &operator.DeploymentState, &operator.ContainerId, &operator.DeploymentError, &operator.AgentId); err != nil {
-			return currentOperators, err
+		var timeOfLastHeartbeat sql.NullString
+		if err := rows.Scan(&operator.PipelineId, &operator.OperatorId, &operator.DeploymentState, &operator.ContainerId, &operator.DeploymentError, &operator.AgentId, &timeOfLastHeartbeat); err != nil {
+			return []operatorEntities.Operator{}, err
 		}
+		parsedHeartbeatTime, err := stringToTime(timeOfLastHeartbeat.String)
+		if err != nil {
+			return []operatorEntities.Operator{}, err
+		}
+		operator.TimeOfLastHeartbeat = parsedHeartbeatTime
         currentOperators = append(currentOperators, operator)
 	}
 	if err = rows.Err(); err != nil {
-        return currentOperators, fmt.Errorf("Operators could not be queried: %w", err)
+        return []operatorEntities.Operator{}, fmt.Errorf("Operators could not be queried: %w", err)
     }
     return currentOperators, nil
+}
+
+func timeToString(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(tLayout)
+}
+
+func stringToTime(s string) (time.Time, error) {
+	if s != "" {
+		return time.Parse(tLayout, s)
+	}
+	return time.Time{}, nil
 }
 
 /*

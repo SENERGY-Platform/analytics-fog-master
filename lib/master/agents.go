@@ -7,7 +7,6 @@ import (
 
 	agentLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
-	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
@@ -28,7 +27,7 @@ func (master *Master) CheckAgents() error {
 		} else {
 			logging.Logger.Debug("No agents available")
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(master.AgentSyncInterval)
 	}
 }
 
@@ -49,24 +48,24 @@ func (master *Master) checkAgent(id string) {
 		time.Sleep(5 * time.Second)
 		agent, err := master.DB.GetAgent(ctx, id)
 		if err != nil {
-			logging.Logger.Error("Could not find agent record")
+			logging.Logger.Error("Could not find agent record", "error", err)
 			break
 		}
 
-		if time.Now().Sub(agent.Updated).Seconds() > 120 {
+		if time.Now().Sub(agent.Updated).Seconds() > float64(master.TimeoutInactiveAgent) {
 			if agent.Active == true {
-				logging.Logger.Debug("Agent %s not reachable -> mark unactive\n", id)
+				logging.Logger.Debug(fmt.Sprintf("Agent %s not reachable -> mark unactive", id))
 				agent.Active = false
 				if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
-					logging.Logger.Error("Could not write agent record ", err)
+					logging.Logger.Error("Could not write agent record", "error", err)
 				}
 			}
 		} else {
 			if agent.Active == false {
-				logging.Logger.Debug("Agent %s reachable again -> mark active\n", id)
+				logging.Logger.Debug(fmt.Sprintf("Agent %s reachable again -> mark active", id))
 				agent.Active = true
 				if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
-					logging.Logger.Error("Could not write agent record ", err)
+					logging.Logger.Error("Could not write agent record ", "error", err)
 				}
 			}
 			break
@@ -86,8 +85,7 @@ func (master *Master) RegisterAgent(agentConf agentLib.Configuration) error {
 	}
 	ctx := context.Background()
 	if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
-		err = fmt.Errorf("Cant register agent at db: %w", err)
-		logging.Logger.Error(err.Error())
+		logging.Logger.Error("Cant register agent at db", "error", err.Error())
 		return err
 	}
 	return nil
@@ -102,44 +100,12 @@ func (master *Master) PongAgent(pongMessage agentLib.AgentInfoMessage) error {
 	}
 	ctx := context.Background()
 	if err := master.DB.CreateOrUpdateAgent(ctx, agent); err != nil {
-		logging.Logger.Error(err.Error())
+		logging.Logger.Error("Cant update agent after pong", "error", err.Error())
 		return err
 	}
 
 	return master.UpdateOperatorStates(pongMessage.CurrentOperatorStates)
 }
-
-func (master *Master) UpdateOperatorStates(operatorStates []agentLib.OperatorState) error {
-	for _, newOperatorState := range(operatorStates) {
-		logging.Logger.Debug("Update operator state from pong", "new state", newOperatorState)
-		operator := operatorEntities.Operator{}
-		operatorID := newOperatorState.OperatorID
-		pipelineID := newOperatorState.PipelineID
-		ctx := context.Background()
-		operator, err := master.DB.GetOperator(ctx, pipelineID, operatorID)
-		if err != nil {
-			// Also the case when agent sends state of an operator that the master does not know 
-			logging.Logger.Error(fmt.Sprintf("Cant load operator %s from DB: %s", operatorID, err.Error()))
-			return err
-		}
-		operator.DeploymentState = newOperatorState.State
-		operator.ContainerId = newOperatorState.ContainerID
-		if newOperatorState.State == "stopped" {
-			logging.Logger.Debug("Operator is stopped -> Delete")
-			if err := master.DB.DeleteOperator(ctx, pipelineID, operatorID); err != nil {
-				logging.Logger.Error("Cant delete operator %s: %w", operatorID, err)
-				return err
-			}
-			continue
-		}
-		logging.Logger.Debug(fmt.Sprintf("Update operator: %+v", operator))
-		if err := master.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
-			logging.Logger.Error("Cant save new operator %s: %w", operatorID, err)
-		}
-	}
-	return nil
-}
-
 
 func (master *Master) PublishMessageToAgent(message string, agentID string, qos int) {
 	master.PublishMessage(agentLib.AgentsTopic+"/"+agentID, message, qos)

@@ -20,7 +20,7 @@ func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operat
 		if errors.Is(err, storage.NotFoundErr) {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("Cant load operator to check deployment state: %w", err)
 	}
 
 	requestedOperatorID := command.OperatorIDs.OperatorId
@@ -57,6 +57,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 
 	operatorIsDeployed, err := controller.operatorIsAlreadyDeployedOrStopping(command)
 	if err != nil && !errors.Is(err, storage.NotFoundErr) { 
+		logging.Logger.Error("Cant check deployment state", "error", err)
 		return err
 	}
 	if operatorIsDeployed {
@@ -66,7 +67,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	ctx := context.Background()
 	agents, err := controller.DB.GetAllAgents(ctx)
 	if len(agents) == 0 {
-		logging.Logger.Debug("No agents available")
+		logging.Logger.Error("No agents available")
 		return errors.New("No agents available")
 	}
 	

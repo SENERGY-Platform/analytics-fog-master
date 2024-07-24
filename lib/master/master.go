@@ -2,27 +2,37 @@ package master
 
 import (
 	"encoding/json"
+	"fmt"
+	"time"
 
 	controlEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/control"
 	masterLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
-
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 )
 
 type Master struct {
 	Client              *mqtt.MQTTClient
 	DB                  storage.DB
 	OperatorController *controller.Controller
+	AgentSyncInterval time.Duration
+	TimeoutInactiveAgent float64
+	TimeoutStaleOperator float64
+	StaleOperatorCheckInterval time.Duration
 }
 
-func NewMaster(mqttClient *mqtt.MQTTClient, db storage.DB, controller *controller.Controller) *Master {
+func NewMaster(mqttClient *mqtt.MQTTClient, db storage.DB, controller *controller.Controller, agentSyncInterval, staleOperatorCheckInterval time.Duration, timeoutInactiveAgent, timeoutStaleOperator float64) *Master {
+	logging.Logger.Debug(fmt.Sprintf("%d", staleOperatorCheckInterval))
 	return &Master{
 		Client:              mqttClient,
 		DB:                  db,
 		OperatorController: controller,
+		AgentSyncInterval: agentSyncInterval,
+		TimeoutStaleOperator: timeoutStaleOperator,
+		TimeoutInactiveAgent: timeoutInactiveAgent,
+		StaleOperatorCheckInterval: staleOperatorCheckInterval,
 	}
 }
 

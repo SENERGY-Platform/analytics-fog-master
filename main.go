@@ -18,18 +18,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"syscall"
+	"time"
 
 	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	sb_util "github.com/SENERGY-Platform/go-service-base/util"
 	"github.com/SENERGY-Platform/go-service-base/watchdog"
 	"github.com/joho/godotenv"
@@ -62,9 +64,9 @@ func main() {
 		return
 	}
 
-	logging.Logger.Debug("config: %s", sb_util.ToJsonStr(config))
+	logging.Logger.Info(fmt.Sprintf("config: %s", sb_util.ToJsonStr(config)))
 
-	logging.Logger.Debug("Create new database at " + config.DataBase.ConnectionURL)
+	logging.Logger.Info("Create new database at " + config.DataBase.ConnectionURL)
 	db, err := storage.NewDB(config.DataBase.ConnectionURL)
 	if err != nil {
 		logging.Logger.Error("Cant init DB", "error", err.Error())
@@ -82,26 +84,34 @@ func main() {
 	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	operatorController := controller.NewController(ctx, mqttClient, storageHandler, config.StartOperatorConfig)
+	operatorController := controller.NewController(ctx, mqttClient, storageHandler)
 	go operatorController.Start()
 	watchdog.RegisterStopFunc(func() error {
 		cancel()
 		return nil
 	})
 
-
-	master := master.NewMaster(mqttClient, storageHandler, operatorController)
+	master := master.NewMaster(mqttClient, storageHandler, operatorController, time.Duration(config.AgentSyncIntervalSeconds * float64(time.Second)), time.Duration(config.StaleOperatorCheckIntervalSeconds * float64(time.Second)), config.TimeoutInactiveAgentSeconds, config.TimeoutStaleOperatorSeconds)
 	relayController := relay.NewRelayController(master)
 	mqttClient.SetSubscriptionHandler(relayController)
 	
-	logging.Logger.Debug("Connect MQTT")
+	logging.Logger.Info("Connect MQTT")
 	mqttClient.ConnectMQTTBroker(nil, nil)
 
-	logging.Logger.Debug("Register master")
+	logging.Logger.Info("Register master")
 	master.Register()
 
-	logging.Logger.Debug("Start agent ping in background")
+	logging.Logger.Info("Start agent ping in background")
 	go master.CheckAgents()
+
+	logging.Logger.Info("Start periodic check for stale operators")
+	staleOperatorCtx, staleOperatorCancel := context.WithCancel(context.Background())
+	go master.MarkStaleOperators(staleOperatorCtx)
+
+	watchdog.RegisterStopFunc(func() error {
+		staleOperatorCancel()
+		return nil
+	})
 
 	watchdog.RegisterStopFunc(func() error {
 		mqttClient.CloseConnection()

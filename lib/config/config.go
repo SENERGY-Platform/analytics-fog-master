@@ -6,11 +6,6 @@ import (
 	"github.com/y-du/go-log-level/level"
 )
 
-type StartOperatorConfig struct {
-	Retries int `json:"retries_start_operator" env_var:"RETRIES_START_OPERATOR"`
-	Timeout int `json:"timeout_start_operator" env_var:"TIMEOUT_START_OPERATOR"`
-}
-
 type DataBaseConfig struct {
 	Timeout int `json:"timeout" env_var:"DATABASE_TIMEOUT"`
 	ConnectionURL       string `json:"url" env_var:"DATABASE_URL"`
@@ -18,11 +13,13 @@ type DataBaseConfig struct {
 
 type Config struct {
 	Broker              mqtt.FogBrokerConfig
-	StartOperatorConfig StartOperatorConfig
 	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
 	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
 	DataBase DataBaseConfig
-	AgentSyncInterval int `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
+	AgentSyncIntervalSeconds float64 `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
+	StaleOperatorCheckIntervalSeconds float64 `json:"stale_operator_check_interval" env_var:"STALE_OPERATOR_CHECK_INTERVAL"`
+	TimeoutStaleOperatorSeconds float64 `json:"timeout_stale_operator" env_var:"TIMEOUT_STALE_OPERATOR"`
+	TimeoutInactiveAgentSeconds float64 `json:"timeout_inactive_agent" env_var:"TIMEOUT_INACTIVE_AGENT"`
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -38,10 +35,10 @@ func NewConfig(path string) (*Config, error) {
 			Terminal:     true,
 		},
 		DataDir: "./data",
-		StartOperatorConfig: StartOperatorConfig{
-			Retries: 10,
-			Timeout: 10,
-		},
+		AgentSyncIntervalSeconds: 120,
+		StaleOperatorCheckIntervalSeconds: 120,
+		TimeoutInactiveAgentSeconds: 120,
+		TimeoutStaleOperatorSeconds: 3600,
 	}
 
 	err := srv_base.LoadConfig(path, &cfg, nil, nil, nil)

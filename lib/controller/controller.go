@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 )
@@ -14,17 +13,15 @@ type Controller struct {
 	Ctx context.Context
 	Client              *mqtt.MQTTClient
 	DB                  storage.DB
-	StartOperatorConfig config.StartOperatorConfig
 }
 
-func NewController(ctx context.Context, mqttClient *mqtt.MQTTClient, db storage.DB, startOperatorConfig config.StartOperatorConfig) *Controller {
+func NewController(ctx context.Context, mqttClient *mqtt.MQTTClient, db storage.DB) *Controller {
 	return &Controller{
 		OperatorStartCommands: make(chan operatorEntities.StartOperatorControlCommand),
 		OperatorStopCommands: make(chan operatorEntities.StopOperatorControlCommand),
 		Ctx: ctx, 
 		Client:              mqttClient,
 		DB:                  db,
-		StartOperatorConfig: startOperatorConfig,
 	}
 }
 

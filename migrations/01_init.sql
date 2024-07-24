@@ -14,6 +14,7 @@ CREATE TABLE operators (
   container_id varchar(255),
   error varchar(255),
   agent_id varchar(255) NOT NULL,
+  time_of_last_heartbeat DATETIME, 
 
   PRIMARY KEY(pipeline_id, operator_id),
   FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE NO ACTION
