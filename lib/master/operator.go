@@ -93,7 +93,7 @@ func (master *Master) StopOperator(command operatorEntities.StopOperatorControlC
 }
 
 func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOperatorControlCommand) {
-	logging.Logger.Debug("Start missing operators")
+	logging.Logger.Debug("check for missing operators")
 	ctx := context.Background()
 	for _, operatorStartCmd := range(syncMsg) {
 		operatorID := operatorStartCmd.OperatorIDs.OperatorId
@@ -112,10 +112,15 @@ func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOper
 }
 
 func (master *Master) stopOperatorOrphans(syncMsg []operatorEntities.StartOperatorControlCommand) {
-	logging.Logger.Debug("Stop orphan operators")
+	logging.Logger.Debug("check for orphan operators")
 	expectedOperators := map[string]map[string]struct{}{}
 	for _, operatorStartCmd := range(syncMsg) {
-		expectedOperators[operatorStartCmd.PipelineId][operatorStartCmd.OperatorId] = struct{}{}
+		pipelineMap, ok := expectedOperators[operatorStartCmd.PipelineId]
+		if ok { 
+			pipelineMap[operatorStartCmd.OperatorId] = struct{}{}
+		} else {
+			expectedOperators[operatorStartCmd.PipelineId] = map[string]struct{}{}
+		}
 	}
 	logging.Logger.Debug(fmt.Sprintf("Expected operators %+v", expectedOperators))
 

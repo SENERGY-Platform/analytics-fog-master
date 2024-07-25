@@ -4,3 +4,7 @@ test_data
 cc-lib
 docker-compose.local.yml
 .env
+*.log
+*.db
+*.sqlite3
+*.sqlite

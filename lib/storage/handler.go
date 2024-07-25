@@ -113,7 +113,14 @@ func (h *Handler) GetAllAgents(ctx context.Context) ([]agentLib.Agent, error) {
 }
 
 func (h *Handler) GetAgent(ctx context.Context, id string) (agentLib.Agent, error) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	row := h.db.QueryRowContext(ctx, "SELECT id, active, updated FROM agents WHERE id == ?", id)
 	agent := agentLib.Agent{}
+	if err := row.Scan(&agent.Id, &agent.Active, &agent.Updated); err != nil {
+		return agentLib.Agent{}, err
+	}
+
     return agent, nil
 }
 

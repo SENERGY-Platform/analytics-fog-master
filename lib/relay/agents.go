@@ -2,7 +2,7 @@ package relay
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 )
@@ -11,14 +11,14 @@ func (relay *RelayController) processAgentsCommand(message []byte) {
 	agentMessage := agentEntities.AgentInfoMessage{}
 	err := json.Unmarshal(message, &agentMessage)
 	if err != nil {
-		fmt.Println("error:", err)
+		logging.Logger.Error("Cant unmarshal agent command", "error", err)
 	}
 	switch agentMessage.Command {
 	case "register":
-		fmt.Println("Received agent register message")
+		logging.Logger.Debug("Received agent register message")
 		err = relay.Master.RegisterAgent(agentMessage.Conf)
 	case "pong":
-		fmt.Println("Received Pong")
+		logging.Logger.Debug("Received Pong")
 		err = relay.Master.PongAgent(agentMessage)
 	}
 }

@@ -14,6 +14,8 @@ import (
 )
 
 func (master *Master) CheckAgents() error {
+	interval := time.Duration(master.AgentSyncInterval)
+	logging.Logger.Debug(fmt.Sprintf("Ping agents each %s", interval))
 	ctx := context.Background()
 	for {
 		agents, err := master.DB.GetAllAgents(ctx)
@@ -52,7 +54,9 @@ func (master *Master) checkAgent(id string) {
 			break
 		}
 
-		if time.Now().Sub(agent.Updated).Seconds() > float64(master.TimeoutInactiveAgent) {
+		secondsSinceLast := time.Now().Sub(agent.Updated).Seconds()
+		logging.Logger.Debug(fmt.Sprintf("Last ping of agent %s was at %s - %f <=> %f", agent.Id, agent.Updated, secondsSinceLast,float64(master.TimeoutInactiveAgent)))
+		if secondsSinceLast > float64(master.TimeoutInactiveAgent) {
 			if agent.Active == true {
 				logging.Logger.Debug(fmt.Sprintf("Agent %s not reachable -> mark unactive", id))
 				agent.Active = false

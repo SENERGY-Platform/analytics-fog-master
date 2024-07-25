@@ -22,6 +22,7 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
+	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -55,6 +56,6 @@ func (relay *RelayController) ProcessMessage(message MQTT.Message) {
 }
 
 func (relay *RelayController) OnMessageReceived(client MQTT.Client, message MQTT.Message) {
-	fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+	logging.Logger.Debug(fmt.Sprintf("Received message on topic: %s Message: %s", message.Topic(), message.Payload()))
 	go relay.ProcessMessage(message)
 }
