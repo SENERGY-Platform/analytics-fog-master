@@ -14,7 +14,7 @@ import (
 // Agent registers and start command will be forwarded to it
 // Master receives response and marks operator as started
 // TODO agent response and then check for `started` state
-func TestAgentSync(t *testing.T) {
+func TestSimple(t *testing.T) {
 	ctx := context.Background()
 	env, err := utils.NewEnv(ctx, t, 30, 30, 30, 30, "normal_start", true)
 	if err != nil {
