@@ -1,11 +1,15 @@
-FROM golang:1.21 AS builder
+FROM alpine:3.20 AS builder
+
+ARG VERSION=dev
+
+RUN apk add --no-cache --update go gcc g++
 
 COPY . /go/src/app
 WORKDIR /go/src/app
 
 ENV GO111MODULE=on
 
-RUN CGO_ENABLED=0 go build -o app cmd/main.go
+RUN CGO_ENABLED=1 go build -o appcmd/main.go
 
 RUN git log -1 --oneline > version.txt
 

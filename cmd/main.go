@@ -35,8 +35,6 @@ import (
 	 err := godotenv.Load()
 	 if err != nil {
 		 log.Print("Error loading .env file: ", err)
-		 ec = 1
-		 return
 	 }
  
 	 config, err := config.NewConfig("")
