@@ -5,7 +5,7 @@ WORKDIR /go/src/app
 
 ENV GO111MODULE=on
 
-RUN CGO_ENABLED=0 go build -o app
+RUN CGO_ENABLED=0 go build -o app cmd/main.go
 
 RUN git log -1 --oneline > version.txt
 
