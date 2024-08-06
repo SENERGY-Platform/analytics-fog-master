@@ -11,12 +11,9 @@ ENV GO111MODULE=on
 
 RUN CGO_ENABLED=1 go build -o app cmd/main.go
 
-RUN git log -1 --oneline > version.txt
-
 FROM alpine:latest
 WORKDIR /root/
 COPY --from=builder /go/src/app/app .
-COPY --from=builder /go/src/app/version.txt .
 COPY --from=builder /go/src/app/migrations migrations
 
 EXPOSE 8080
