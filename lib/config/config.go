@@ -39,6 +39,10 @@ func NewConfig(path string) (*Config, error) {
 		StaleOperatorCheckIntervalSeconds: 120,
 		TimeoutInactiveAgentSeconds: 120,
 		TimeoutStaleOperatorSeconds: 3600,
+		DataBase: DataBaseConfig{
+			Timeout: 10000000000,
+			ConnectionURL: "sqlite3:./data/sqlite3.db",
+		},
 	}
 
 	err := srv_base.LoadConfig(path, &cfg, nil, nil, nil)

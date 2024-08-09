@@ -11,7 +11,6 @@ import (
 	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
-	"github.com/SENERGY-Platform/analytics-fog-master/migrations"
 
 	testLib "github.com/hahahannes/e2e-go-utils/lib"
 	"github.com/hahahannes/e2e-go-utils/lib/streaming/mqtt"
@@ -82,7 +81,6 @@ func (e *Env) StartAndWait(ctx context.Context, t *testing.T) error {
 			ConnectionURL: e.DataBaseURL,
 		},
 	}
-	migrations.MigrateDb(e.DataBaseURL)
 	
 	received, err := testLib.WaitForStringReceived(".*Master is ready.*", func (sendCtx context.Context) error {
 		return lib.Run(sendCtx, logger, logger, runConfig)

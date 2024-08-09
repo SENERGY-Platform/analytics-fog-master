@@ -17,6 +17,7 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/mqtt"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/relay"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
+	"github.com/SENERGY-Platform/analytics-fog-master/migrations"
 	sb_util "github.com/SENERGY-Platform/go-service-base/util"
 	"github.com/SENERGY-Platform/go-service-base/watchdog"
 )
@@ -40,6 +41,7 @@ func Run(
 		logging.Logger.Error("Cant init DB", "error", err.Error())
 		return err
 	}
+	migrations.MigrateDb(config.DataBase.ConnectionURL)
 	defer db.Close()
  
 	storageHandler := storage.New(db)
