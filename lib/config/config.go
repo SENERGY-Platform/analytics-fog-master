@@ -7,7 +7,7 @@ import (
 )
 
 type DataBaseConfig struct {
-	Timeout int `json:"timeout" env_var:"DATABASE_TIMEOUT"`
+	Timeout int64 `json:"timeout" env_var:"DATABASE_TIMEOUT"`
 	ConnectionURL       string `json:"url" env_var:"DATABASE_URL"`
 }
 
