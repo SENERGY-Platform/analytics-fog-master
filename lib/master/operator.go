@@ -103,8 +103,9 @@ func (master *Master) startMissingOperators(syncMsg []operatorEntities.StartOper
 			if errors.Is(err, storage.NotFoundErr) {
 				logging.Logger.Debug("Start missing operator:" + operatorStartCmd.OperatorIDs.OperatorId)
 				master.StartOperator(operatorStartCmd)
+			} else {
+				logging.Logger.Error("Cant check if operator already exists", "error", err)
 			}
-			logging.Logger.Error("Cant check if operator already exists", "error", err)
 			return
 		}
 	}
