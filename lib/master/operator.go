@@ -222,7 +222,6 @@ func (master *Master) MarkStaleOperators(doneCtx context.Context) error {
 				deploymentState := operator.DeploymentState
 				pipelineID := operator.PipelineId
 				operatorID := operator.OperatorId
-				logging.Logger.Debug(fmt.Sprintf("Operator state is stale: %s", deploymentState), "pipelineID", pipelineID, "operatorID", operatorID)
 				if deploymentState == "starting" {
 					logging.Logger.Debug("Delete stale starting operator", "pipelineID", pipelineID, "operatorID", operatorID)
 					err := master.DB.DeleteOperator(ctx, pipelineID, operatorID)
