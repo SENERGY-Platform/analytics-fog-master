@@ -12,11 +12,6 @@ func NewDB(pathToDatabase string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Close()
-	db, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on&mode=rwc", pathToDatabase))
-	if err != nil {
-		return nil, err
-	}
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(5 * time.Minute)
