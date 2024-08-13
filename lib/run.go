@@ -41,7 +41,7 @@ func Run(
 		logging.Logger.Error("Cant init DB", "error", err.Error())
 		return err
 	}
-	err = migrations.MigrateDb(db)
+	err = migrations.MigrateDb(config.DataBase.Path)
 	if err != nil {
 		logging.Logger.Error("Cant migrate DB", "error", err.Error())
 		return err
