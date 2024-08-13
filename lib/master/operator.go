@@ -218,7 +218,7 @@ func (master *Master) MarkStaleOperators(doneCtx context.Context) error {
 				if time.Now().Sub(operator.TimeOfLastHeartbeat).Seconds() < master.TimeoutStaleOperator {
 					continue
 				}
-
+				logging.Logger.Debug(fmt.Sprintf("Time of last heartbeat: %s <==> %f", operator.TimeOfLastHeartbeat, master.TimeoutStaleOperator))
 				deploymentState := operator.DeploymentState
 				pipelineID := operator.PipelineId
 				operatorID := operator.OperatorId
