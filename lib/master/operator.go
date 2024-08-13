@@ -116,12 +116,12 @@ func (master *Master) stopOperatorOrphans(syncMsg []operatorEntities.StartOperat
 	logging.Logger.Debug("check for orphan operators")
 	expectedOperators := map[string]map[string]struct{}{}
 	for _, operatorStartCmd := range(syncMsg) {
-		pipelineMap, ok := expectedOperators[operatorStartCmd.PipelineId]
-		if ok { 
-			pipelineMap[operatorStartCmd.OperatorId] = struct{}{}
-		} else {
+		_, ok := expectedOperators[operatorStartCmd.PipelineId]
+		if !ok {
 			expectedOperators[operatorStartCmd.PipelineId] = map[string]struct{}{}
 		}
+
+		expectedOperators[operatorStartCmd.PipelineId][operatorStartCmd.OperatorId] = struct{}{}
 	}
 	logging.Logger.Debug(fmt.Sprintf("Expected operators %+v", expectedOperators))
 
