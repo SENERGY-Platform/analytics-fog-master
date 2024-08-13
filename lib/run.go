@@ -35,13 +35,18 @@ func Run(
  
 	logging.Logger.Info(fmt.Sprintf("config: %s", sb_util.ToJsonStr(config)))
  
-	logging.Logger.Info("Create new database at " + config.DataBase.ConnectionURL)
-	db, err := storage.NewDB(config.DataBase.ConnectionURL)
+	logging.Logger.Info("Create new database at " + config.DataBase.Path)
+	db, err := storage.NewDB(config.DataBase.Path)
 	if err != nil {
 		logging.Logger.Error("Cant init DB", "error", err.Error())
 		return err
 	}
-	migrations.MigrateDb(config.DataBase.ConnectionURL)
+	err = migrations.MigrateDb(db)
+	if err != nil {
+		logging.Logger.Error("Cant migrate DB", "error", err.Error())
+		return err
+	}
+
 	defer db.Close()
  
 	storageHandler := storage.New(db)

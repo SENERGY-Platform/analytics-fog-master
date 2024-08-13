@@ -78,7 +78,7 @@ func (e *Env) StartAndWait(ctx context.Context, t *testing.T) error {
 		TimeoutInactiveAgentSeconds: e.TimeoutInactiveAgentSeconds,
 		TimeoutStaleOperatorSeconds: e.TimeoutStaleOperatorSeconds,
 		DataBase: config.DataBaseConfig{
-			ConnectionURL: e.DataBaseURL,
+			Path: e.DataBaseURL,
 		},
 	}
 	
