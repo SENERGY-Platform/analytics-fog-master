@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 
 	agentEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/agent"
 	operatorEntities "github.com/SENERGY-Platform/analytics-fog-lib/lib/operator"
@@ -101,6 +102,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		DeploymentState:                "starting",
 		StartOperatorControlCommand: command,
 		AgentId: agent.Id,
+		TimeOfLastHeartbeat: time.Now(),
 	}
 	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
 		logging.Logger.Error("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
