@@ -173,6 +173,7 @@ func (master *Master) UpdateOperatorStates(operatorStates []agentLib.OperatorSta
 		}
 		operator.DeploymentState = newOperatorState.State
 		operator.ContainerId = newOperatorState.ContainerID
+		operator.TimeOfLastHeartbeat = time.Now()
 		if newOperatorState.State == "stopped" {
 			logging.Logger.Debug("Operator is stopped -> Delete")
 			if err := master.DB.DeleteOperator(ctx, pipelineID, operatorID); err != nil {
