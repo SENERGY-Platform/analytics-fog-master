@@ -59,8 +59,8 @@ func (h *Handler) DeleteAgent(ctx context.Context, id string) error {
 
 func (h *Handler) createOperator(ctx context.Context, operator operatorEntities.Operator) error {
 	logging.Logger.Debug("Create Operator", "new operator", operator)
-    query := `INSERT INTO operators (pipeline_id, operator_id, state, container_id, error, agent_id) VALUES (?, ?, ?, ?, ?, ?)`
-    _, err := h.db.ExecContext(ctx, query, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, operator.AgentId)
+    query := `INSERT INTO operators (pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    _, err := h.db.ExecContext(ctx, query, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, operator.AgentId, operator.TimeOfLastHeartbeat)
     if err != nil {
         return fmt.Errorf("createOperator: %v", err)
     }
