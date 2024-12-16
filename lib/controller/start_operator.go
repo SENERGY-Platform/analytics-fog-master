@@ -30,13 +30,13 @@ func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operat
 	if opState == "starting" {
 		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is starting. Dont start until starting process finishes", requestedOperatorID, requestedPipelineID))
 		return true, nil
-	} 
-	
+	}
+
 	if opState == "started" {
 		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is already started.", requestedOperatorID, requestedPipelineID))
 		return true, nil
 	}
-	
+
 	if opState == "stopping" {
 		logging.Logger.Debug(fmt.Sprintf("Operator %s (Pipeline: %s) is stopping. Dont start until stopping process finishes", requestedOperatorID, requestedPipelineID))
 		return true, nil
@@ -46,7 +46,7 @@ func (controller *Controller) operatorIsAlreadyDeployedOrStopping(command operat
 }
 
 func (controller *Controller) startOperator(command operatorEntities.StartOperatorControlCommand) error {
-	/* 
+	/*
 		To start an operator, first an agent has to be selected.
 		Then, the start command is sent to the agent.
 		As we the request is async, we will get the response from the agent eventually
@@ -57,7 +57,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 	pipelineID := command.OperatorIDs.PipelineId
 
 	operatorIsDeployed, err := controller.operatorIsAlreadyDeployedOrStopping(command)
-	if err != nil && !errors.Is(err, storage.NotFoundErr) { 
+	if err != nil && !errors.Is(err, storage.NotFoundErr) {
 		logging.Logger.Error("Cant check deployment state", "error", err)
 		return err
 	}
@@ -71,7 +71,7 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		logging.Logger.Error("No agents available")
 		return errors.New("No agents available")
 	}
-	
+
 	var activeAgents []agentEntities.Agent
 	for _, agent := range agents {
 		if agent.Active {
@@ -79,13 +79,13 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 		}
 	}
 	if len(activeAgents) == 0 {
-		/* It will be retried with the next sync anyways. We could think of enabling this part again, 
-		but keep in mind that it could create duplicate deployments if no check is done whether operator is currently starting 
+		/* It will be retried with the next sync anyways. We could think of enabling this part again,
+		but keep in mind that it could create duplicate deployments if no check is done whether operator is currently starting
 		logging.Logger.Debug("No active agents available, retrying in 10 seconds")
 		time.Sleep(10 * time.Second)
 		controller.StartOperator(command)*/
 		return errors.New("No active agents available")
-	} 
+	}
 
 	agent := controller.SelectAgent(activeAgents)
 
@@ -99,13 +99,13 @@ func (controller *Controller) startOperator(command operatorEntities.StartOperat
 
 	logging.Logger.Debug("Set operator state to starting")
 	operator := operatorEntities.Operator{
-		DeploymentState:                "starting",
+		DeploymentState:             "starting",
 		StartOperatorControlCommand: command,
-		AgentId: agent.Id,
-		TimeOfLastHeartbeat: time.Now(),
+		AgentId:                     agent.Id,
+		TimeOfLastHeartbeat:         time.Now(),
 	}
 	if err := controller.DB.CreateOrUpdateOperator(ctx, operator); err != nil {
-		logging.Logger.Error("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err)
+		logging.Logger.Error(fmt.Sprintf("Error saving operator  %s (Pipeline: %s) after receiving start command: %s", operatorID, pipelineID, err.Error()))
 		return err
 	}
 

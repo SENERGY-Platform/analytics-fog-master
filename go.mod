@@ -5,7 +5,7 @@ go 1.21.3
 //replace github.com/SENERGY-Platform/analytics-fog-lib => ../analytics-fog-lib
 
 require (
-	github.com/SENERGY-Platform/analytics-fog-lib v1.1.23
+	github.com/SENERGY-Platform/analytics-fog-lib v1.1.26
 	github.com/SENERGY-Platform/go-service-base v0.13.0
 	github.com/SENERGY-Platform/go-service-base/util v0.14.0
 	github.com/SENERGY-Platform/go-service-base/watchdog v0.4.1

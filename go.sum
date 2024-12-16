@@ -8,8 +8,8 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/Microsoft/hcsshim v0.12.3 h1:LS9NXqXhMoqNCplK1ApmVSfB4UnVLRDWRapB6EIlxE0=
 github.com/Microsoft/hcsshim v0.12.3/go.mod h1:Iyl1WVpZzr+UkzjekHZbV8o5Z9ZkxNGx6CtY2Qg/JVQ=
-github.com/SENERGY-Platform/analytics-fog-lib v1.1.23 h1:0JqFr529CagQm5Xzfc67U+QVNH7GkXObIm/Q93Y9jjQ=
-github.com/SENERGY-Platform/analytics-fog-lib v1.1.23/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.26 h1:xBS+FwCN0xAw72NQDCT7O7gwcLBR29JzP9SretbmPYo=
+github.com/SENERGY-Platform/analytics-fog-lib v1.1.26/go.mod h1:IbFAOaWXaEkLvNyI9QSq9Mw3PtLCONkrY9WHSpqbDQg=
 github.com/SENERGY-Platform/go-service-base v0.13.0 h1:1ytMAd84TO6+gvffjITShTOPStJiP7rSly9lG09fzxU=
 github.com/SENERGY-Platform/go-service-base v0.13.0/go.mod h1:NyMDXzkC/5oRzaMZ1wbFlXTnLoyo3CXM8q1eSloMuBo=
 github.com/SENERGY-Platform/go-service-base/util v0.14.0 h1:oMzPR6zrbHPPgcMi39rDnM3qXh4shP03JRfSyDnnMlw=
@@ -64,8 +64,6 @@ github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/
 github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZHL0uE0tcaY=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 h1:YBftPWNWd4WwGqtY2yeZL2ef8rHAxPBD8KFhJpmcqms=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0/go.mod h1:YN5jB8ie0yfIUg6VvR9Kz84aCaG7AsGZnLjhHbUqwPg=
-github.com/hahahannes/e2e-go-utils v1.2.15 h1:l/1GvpIdQW4KEQ3/NKQdZDiIf6uvcbi5Y56JfwXyRfE=
-github.com/hahahannes/e2e-go-utils v1.2.15/go.mod h1:7lKHTZS1IUmk57WJ3PELGKeEF0htNqGEF9wYOPSu/nE=
 github.com/hahahannes/e2e-go-utils v1.2.16 h1:5ASSocJHTXiJ97LOxGPNEME8AcFbQfviUCrUMJ63eMY=
 github.com/hahahannes/e2e-go-utils v1.2.16/go.mod h1:7lKHTZS1IUmk57WJ3PELGKeEF0htNqGEF9wYOPSu/nE=
 github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=
