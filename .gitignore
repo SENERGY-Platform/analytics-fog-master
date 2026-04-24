@@ -8,3 +8,4 @@ docker-compose.local.yml
 *.db
 *.sqlite3
 *.sqlite
+.vscode
