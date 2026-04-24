@@ -2,10 +2,12 @@ package lib
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"os/signal"
 	"syscall"
 	"time"
 
@@ -19,85 +21,123 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/storage"
 	"github.com/SENERGY-Platform/analytics-fog-master/migrations"
 	sb_util "github.com/SENERGY-Platform/go-service-base/util"
-	"github.com/SENERGY-Platform/go-service-base/watchdog"
 )
 
 func Run(
-	ctx    context.Context,
+	ctx context.Context,
 	stdout, stderr io.Writer,
-	config config.Config,
+	cfg config.Config,
 ) error {
-	err := logging.InitLogger(stdout, true)
-	if err != nil {
-		log.Printf("Error init logging: %s", err.Error())
-		return err
-	}
- 
-	logging.Logger.Info(fmt.Sprintf("config: %s", sb_util.ToJsonStr(config)))
- 
-	logging.Logger.Info("Create new database at " + config.DataBase.Path)
-	db, err := storage.NewDB(config.DataBase.Path)
-	if err != nil {
-		logging.Logger.Error("Cant init DB", "error", err.Error())
-		return err
-	}
-	err = migrations.MigrateDb(config.DataBase.Path)
-	if err != nil {
-		logging.Logger.Error("Cant migrate DB", "error", err.Error())
+	if err := logging.InitLogger(stdout, true); err != nil {
+		log.Printf("error initialising logger: %s", err)
 		return err
 	}
 
-	defer db.Close()
- 
+	logging.Logger.Info(fmt.Sprintf("config: %s", sb_util.ToJsonStr(cfg)))
+
+	db, err := initDB(cfg.DataBase.Path)
+	if err != nil {
+		return err
+	}
+	defer func(db *sql.DB) {
+		err = db.Close()
+		if err != nil {
+
+		}
+	}(db)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	storageHandler := storage.New(db)
- 
-	watchdog := watchdog.New(syscall.SIGINT, syscall.SIGTERM)
- 
-	fogMQTTConfig := mqttLib.BrokerConfig(config.Broker)
-	mqttClient := mqtt.NewMQTTClient(fogMQTTConfig, logging.Logger)
- 
-	ctx, cancel := context.WithCancel(context.Background())
+	mqttClient := initMQTT(cfg)
 	operatorController := controller.NewController(ctx, mqttClient, storageHandler)
 	go operatorController.Start()
-	watchdog.RegisterStopFunc(func() error {
-		cancel()
-		return nil
-	})
- 
-	master := master.NewMaster(mqttClient, storageHandler, operatorController, time.Duration(config.AgentSyncIntervalSeconds * float64(time.Second)), time.Duration(config.StaleOperatorCheckIntervalSeconds * float64(time.Second)), config.TimeoutInactiveAgentSeconds, config.TimeoutStaleOperatorSeconds)
-	relayController := relay.NewRelayController(master)
-	mqttClient.SetSubscriptionHandler(relayController)
-	 
-	logging.Logger.Info("Connect MQTT")
-	mqttClient.ConnectMQTTBroker(nil, nil)
- 
-	logging.Logger.Info("Register master")
-	master.Register()
- 
-	logging.Logger.Info("Start agent ping in background")
-	go master.CheckAgents()
- 
- 	logging.Logger.Info("Start periodic check for stale operators")
-	staleOperatorCtx, staleOperatorCancel := context.WithCancel(context.Background())
-	go master.MarkStaleOperators(staleOperatorCtx)
- 
-	watchdog.RegisterStopFunc(func() error {
-		staleOperatorCancel()
-		return nil
-	})
- 
-	watchdog.RegisterStopFunc(func() error {
-		mqttClient.CloseConnection()
-		return nil
-	})
- 
-	logging.Logger.Info("Master is ready")
-	watchdog.Start()
- 
-	ec := watchdog.Join()
-	if ec != 0 {
-		return errors.New("Could not join")
+
+	m := initMaster(cfg, mqttClient, storageHandler, operatorController)
+	mqttClient.SetSubscriptionHandler(relay.NewRelayController(m))
+
+	logging.Logger.Info("connecting to MQTT broker")
+	err = mqttClient.ConnectMQTTBroker(nil, nil)
+	if err != nil {
+		return err
 	}
-	logging.Logger.Info("Shutdowned graceful")
+
+	logging.Logger.Info("registering master")
+	m.Register()
+
+	logging.Logger.Info("starting agent ping")
+	go func() {
+		err = m.CheckAgents()
+		if err != nil {
+
+		}
+	}()
+
+	logging.Logger.Info("starting stale operator check")
+	go func() {
+		err = m.MarkStaleOperators(ctx)
+		if err != nil {
+
+		}
+	}()
+
+	logging.Logger.Info("master is ready")
+
+	waitForShutdown(ctx, cancel, mqttClient)
+
+	logging.Logger.Info("shutdown complete")
 	return nil
+}
+
+func waitForShutdown(ctx context.Context, cancel context.CancelFunc, mqttClient *mqttLib.MQTTClient) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(quit)
+
+	select {
+	case <-quit:
+		logging.Logger.Info("received shutdown signal")
+	case <-ctx.Done():
+		logging.Logger.Info("context cancelled")
+	}
+
+	cancel()
+	mqttClient.CloseConnection()
+}
+
+func initDB(path string) (*sql.DB, error) {
+	logging.Logger.Info("initialising database", "path", path)
+	db, err := storage.NewDB(path)
+	if err != nil {
+		return nil, fmt.Errorf("init db: %w", err)
+	}
+	if err := migrations.MigrateDb(path); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate db: %w", err)
+	}
+	return db, nil
+}
+
+func initMQTT(cfg config.Config) *mqttLib.MQTTClient {
+	return mqtt.NewMQTTClient(mqttLib.BrokerConfig(cfg.Broker), logging.Logger)
+}
+
+func initMaster(
+	cfg config.Config,
+	mqttClient *mqttLib.MQTTClient,
+	storageHandler *storage.Handler,
+	operatorController *controller.Controller,
+) *master.Master {
+	agentSync := time.Duration(cfg.AgentSyncIntervalSeconds * float64(time.Second))
+	staleCheck := time.Duration(cfg.StaleOperatorCheckIntervalSeconds * float64(time.Second))
+	return master.NewMaster(
+		mqttClient,
+		storageHandler,
+		operatorController,
+		agentSync,
+		staleCheck,
+		cfg.TimeoutInactiveAgentSeconds,
+		cfg.TimeoutStaleOperatorSeconds,
+	)
 }

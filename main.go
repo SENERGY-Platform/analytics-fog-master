@@ -37,7 +37,7 @@ func main() {
 		log.Print("Error loading .env file: ", err)
 	}
 
-	config, err := config.NewConfig("")
+	conf, err := config.NewConfig("")
 	if err != nil {
 		log.Print("Cant load config: ", err)
 		ec = 1
@@ -45,8 +45,9 @@ func main() {
 	}
 
 	ctx := context.Background()
-	err = lib.Run(ctx, os.Stdout, os.Stderr, *config)
+	err = lib.Run(ctx, os.Stdout, os.Stderr, *conf)
 	if err != nil {
+		log.Printf("Error running: %s", err)
 		ec = 1
 		return
 	}
