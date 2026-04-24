@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 InfAI (CC SES)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package storage
 
 import (
@@ -18,7 +34,7 @@ var NotFoundErr = errors.New("not found")
 
 type Handler struct {
 	db *sql.DB
-	mu       sync.RWMutex
+	mu sync.RWMutex
 }
 
 func New(db *sql.DB) *Handler {
@@ -28,65 +44,65 @@ func New(db *sql.DB) *Handler {
 func (h *Handler) createAgent(ctx context.Context, agent agentLib.Agent) error {
 	logging.Logger.Debug("Create Agent", "new agent", agent)
 
-    query := `INSERT INTO agents (id, updated, active) VALUES (?, ?, ?)`
-    _, err := h.db.ExecContext(ctx, query, agent.Id, agent.Updated, agent.Active)
-    if err != nil {
-        return fmt.Errorf("createAgent: %v", err)
-    }
-    return nil
+	query := `INSERT INTO agents (id, updated, active) VALUES (?, ?, ?)`
+	_, err := h.db.ExecContext(ctx, query, agent.Id, agent.Updated, agent.Active)
+	if err != nil {
+		return fmt.Errorf("createAgent: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) updateAgent(ctx context.Context, agent agentLib.Agent) error {
 	logging.Logger.Debug("Update Agent", "new agent", agent)
-    query := `UPDATE agents SET updated = ?, active = ? WHERE id = ?`
-    _, err := h.db.ExecContext(ctx, query, agent.Updated, agent.Active, agent.Id)
-    if err != nil {
-        return fmt.Errorf("updateAgent: %v", err)
-    }
-    return nil
+	query := `UPDATE agents SET updated = ?, active = ? WHERE id = ?`
+	_, err := h.db.ExecContext(ctx, query, agent.Updated, agent.Active, agent.Id)
+	if err != nil {
+		return fmt.Errorf("updateAgent: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) DeleteAgent(ctx context.Context, id string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	query := `DELETE FROM agents WHERE id = ?`
-    _, err := h.db.ExecContext(ctx, query, id)
-    if err != nil {
-        return fmt.Errorf("deleteAgent: %v", err)
-    }
-    return nil
+	_, err := h.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("deleteAgent: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) createOperator(ctx context.Context, operator operatorEntities.Operator) error {
 	logging.Logger.Debug("Create Operator", "new operator", operator)
-    query := `INSERT INTO operators (pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat) VALUES (?, ?, ?, ?, ?, ?, ?)`
-    _, err := h.db.ExecContext(ctx, query, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, operator.AgentId, operator.TimeOfLastHeartbeat)
-    if err != nil {
-        return fmt.Errorf("createOperator: %v", err)
-    }
-    return nil
+	query := `INSERT INTO operators (pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	_, err := h.db.ExecContext(ctx, query, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, operator.AgentId, operator.TimeOfLastHeartbeat)
+	if err != nil {
+		return fmt.Errorf("createOperator: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) updateOperator(ctx context.Context, operator operatorEntities.Operator) error {
 	logging.Logger.Debug("Update Operator", "new operator", operator)
 	timeStr := timeToString(operator.TimeOfLastHeartbeat)
-    query := `UPDATE operators SET state = ?, container_id = ?, error = ?, time_of_last_heartbeat = ? WHERE pipeline_id = ? AND operator_id = ?`
-    _, err := h.db.ExecContext(ctx, query, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, timeStr, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId)
-    if err != nil {
-        return fmt.Errorf("updateOperator: %v", err)
-    }
-    return nil
+	query := `UPDATE operators SET state = ?, container_id = ?, error = ?, time_of_last_heartbeat = ? WHERE pipeline_id = ? AND operator_id = ?`
+	_, err := h.db.ExecContext(ctx, query, operator.DeploymentState, operator.ContainerId, operator.DeploymentError, timeStr, operator.OperatorIDs.PipelineId, operator.OperatorIDs.OperatorId)
+	if err != nil {
+		return fmt.Errorf("updateOperator: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) DeleteOperator(ctx context.Context, pipelineID string, operatorID string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	query := `DELETE FROM operators WHERE pipeline_id = ? AND operator_id = ?`
-    _, err := h.db.ExecContext(ctx, query, pipelineID, operatorID)
-    if err != nil {
-        return fmt.Errorf("deleteOperator: %v", err)
-    }
-    return nil
+	_, err := h.db.ExecContext(ctx, query, pipelineID, operatorID)
+	if err != nil {
+		return fmt.Errorf("deleteOperator: %v", err)
+	}
+	return nil
 }
 
 func (h *Handler) GetAllAgents(ctx context.Context) ([]agentLib.Agent, error) {
@@ -99,17 +115,17 @@ func (h *Handler) GetAllAgents(ctx context.Context) ([]agentLib.Agent, error) {
 	}
 	defer rows.Close()
 
-	for rows.Next() {  
-        agent := agentLib.Agent{} 
+	for rows.Next() {
+		agent := agentLib.Agent{}
 		if err := rows.Scan(&agent.Id, &agent.Active, &agent.Updated); err != nil {
 			return agents, err
 		}
-        agents = append(agents, agent)
+		agents = append(agents, agent)
 	}
 	if err = rows.Err(); err != nil {
-        return agents, fmt.Errorf("Agents could not be queried: %w", err)
-    }
-    return agents, nil
+		return agents, fmt.Errorf("Agents could not be queried: %w", err)
+	}
+	return agents, nil
 }
 
 func (h *Handler) GetAgent(ctx context.Context, id string) (agentLib.Agent, error) {
@@ -121,7 +137,7 @@ func (h *Handler) GetAgent(ctx context.Context, id string) (agentLib.Agent, erro
 		return agentLib.Agent{}, err
 	}
 
-    return agent, nil
+	return agent, nil
 }
 
 func (h *Handler) CreateOrUpdateAgent(ctx context.Context, agent agentLib.Agent) error {
@@ -133,17 +149,17 @@ func (h *Handler) CreateOrUpdateAgent(ctx context.Context, agent agentLib.Agent)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return h.createAgent(ctx, agent)
-		} 
+		}
 		return err
 	}
-    
+
 	return h.updateAgent(ctx, agent)
 }
 
 func (h *Handler) GetOperator(ctx context.Context, pipelineID, operatorID string) (operatorEntities.Operator, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	operator := operatorEntities.Operator{} 
+	operator := operatorEntities.Operator{}
 	var timeOfLastHeartbeat sql.NullString
 	row := h.db.QueryRowContext(ctx, "SELECT pipeline_id, operator_id, state, container_id, error, agent_id, time_of_last_heartbeat FROM operators WHERE pipeline_id == ? AND operator_id == ?", pipelineID, operatorID)
 
@@ -152,7 +168,7 @@ func (h *Handler) GetOperator(ctx context.Context, pipelineID, operatorID string
 		if errors.Is(err, sql.ErrNoRows) {
 			return operatorEntities.Operator{}, NotFoundErr
 		}
-		return operatorEntities.Operator{} , err
+		return operatorEntities.Operator{}, err
 	}
 	parsedHeartbeatTime, err := stringToTime(timeOfLastHeartbeat.String)
 	if err != nil {
@@ -171,9 +187,9 @@ func (h *Handler) CreateOrUpdateOperator(ctx context.Context, operator operatorE
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return h.createOperator(ctx, operator)
-		} 
+		}
 		return err
-	}	
+	}
 	return h.updateOperator(ctx, operator)
 }
 
@@ -187,8 +203,8 @@ func (h *Handler) GetOperators(ctx context.Context) ([]operatorEntities.Operator
 	}
 	defer rows.Close()
 
-	for rows.Next() {  
-        operator := operatorEntities.Operator{} 
+	for rows.Next() {
+		operator := operatorEntities.Operator{}
 		var timeOfLastHeartbeat sql.NullString
 		if err := rows.Scan(&operator.PipelineId, &operator.OperatorId, &operator.DeploymentState, &operator.ContainerId, &operator.DeploymentError, &operator.AgentId, &timeOfLastHeartbeat); err != nil {
 			return []operatorEntities.Operator{}, err
@@ -198,12 +214,12 @@ func (h *Handler) GetOperators(ctx context.Context) ([]operatorEntities.Operator
 			return []operatorEntities.Operator{}, err
 		}
 		operator.TimeOfLastHeartbeat = parsedHeartbeatTime
-        currentOperators = append(currentOperators, operator)
+		currentOperators = append(currentOperators, operator)
 	}
 	if err = rows.Err(); err != nil {
-        return []operatorEntities.Operator{}, fmt.Errorf("Operators could not be queried: %w", err)
-    }
-    return currentOperators, nil
+		return []operatorEntities.Operator{}, fmt.Errorf("Operators could not be queried: %w", err)
+	}
+	return currentOperators, nil
 }
 
 func timeToString(t time.Time) string {

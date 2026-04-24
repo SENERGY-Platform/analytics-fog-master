@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 InfAI (CC SES)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package config
 
 import (
@@ -7,19 +23,19 @@ import (
 )
 
 type DataBaseConfig struct {
-	Timeout int64 `json:"timeout" env_var:"DATABASE_TIMEOUT"`
-	Path       string `json:"url" env_var:"DATABASE_PATH"`
+	Timeout int64  `json:"timeout" env_var:"DATABASE_TIMEOUT"`
+	Path    string `json:"url" env_var:"DATABASE_PATH"`
 }
 
 type Config struct {
-	Broker              mqtt.FogBrokerConfig
-	Logger              srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
-	DataDir             string                `json:"data_dir" env_var:"DATA_DIR"`
-	DataBase DataBaseConfig
-	AgentSyncIntervalSeconds float64 `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
+	Broker                            mqtt.FogBrokerConfig
+	Logger                            srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
+	DataDir                           string                `json:"data_dir" env_var:"DATA_DIR"`
+	DataBase                          DataBaseConfig
+	AgentSyncIntervalSeconds          float64 `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
 	StaleOperatorCheckIntervalSeconds float64 `json:"stale_operator_check_interval" env_var:"STALE_OPERATOR_CHECK_INTERVAL"`
-	TimeoutStaleOperatorSeconds float64 `json:"timeout_stale_operator" env_var:"TIMEOUT_STALE_OPERATOR"`
-	TimeoutInactiveAgentSeconds float64 `json:"timeout_inactive_agent" env_var:"TIMEOUT_INACTIVE_AGENT"`
+	TimeoutStaleOperatorSeconds       float64 `json:"timeout_stale_operator" env_var:"TIMEOUT_STALE_OPERATOR"`
+	TimeoutInactiveAgentSeconds       float64 `json:"timeout_inactive_agent" env_var:"TIMEOUT_INACTIVE_AGENT"`
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -34,14 +50,14 @@ func NewConfig(path string) (*Config, error) {
 			Microseconds: true,
 			Terminal:     true,
 		},
-		DataDir: "./data",
-		AgentSyncIntervalSeconds: 120,
+		DataDir:                           "./data",
+		AgentSyncIntervalSeconds:          120,
 		StaleOperatorCheckIntervalSeconds: 120,
-		TimeoutInactiveAgentSeconds: 120,
-		TimeoutStaleOperatorSeconds: 3600,
+		TimeoutInactiveAgentSeconds:       120,
+		TimeoutStaleOperatorSeconds:       3600,
 		DataBase: DataBaseConfig{
 			Timeout: 10000000000,
-			Path: "./data/sqlite3.db",
+			Path:    "./data/sqlite3.db",
 		},
 	}
 

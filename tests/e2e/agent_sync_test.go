@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 InfAI (CC SES)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package e2e
 
 import (
@@ -19,12 +35,12 @@ func TestSimple(t *testing.T) {
 	env, err := utils.NewEnv(ctx, t, 30, 30, 30, 30, "normal_start", true)
 	if err != nil {
 		t.Errorf("Cant start env: %s", err.Error())
-		return 
+		return
 	}
 	err = env.Start(ctx, t)
 	if err != nil {
 		t.Errorf("Cant start broker or master: %s", err.Error())
-		return 
+		return
 	}
 
 	agentID := "agent1"
@@ -34,7 +50,7 @@ func TestSimple(t *testing.T) {
 		return
 	}
 
-	ctx, cf := context.WithTimeout(ctx, 60 * time.Second)
+	ctx, cf := context.WithTimeout(ctx, 60*time.Second)
 	defer cf()
 	startOperatorTopic := fmt.Sprintf("analytics/agents/%s/control/start", agentID)
 	result, err := mqtt.WaitForMQTTMessageReceived(ctx, startOperatorTopic, ".*", func(context.Context) error {
@@ -44,7 +60,7 @@ func TestSimple(t *testing.T) {
 	}, "localhost", env.BrokerPort, false)
 	if err != nil {
 		t.Error(err)
-		return 
+		return
 	}
 	if result.Error != nil {
 		t.Error(err)
@@ -53,9 +69,7 @@ func TestSimple(t *testing.T) {
 	assert.Equal(t, result.Received, true)
 }
 
-
-
-// Agent registers -> Timeout for pong -> mark agent inactive 
+// Agent registers -> Timeout for pong -> mark agent inactive
 // Start command will be ignored by Master
 func TestInactiveAgent(t *testing.T) {
 	ctx := context.Background()
@@ -65,12 +79,12 @@ func TestInactiveAgent(t *testing.T) {
 	env, err := utils.NewEnv(ctx, t, agentPingInterval, 100, timeoutInactiveAgent, 100, "inactive_agent", true)
 	if err != nil {
 		t.Errorf("Cant start env: %s", err.Error())
-		return 
+		return
 	}
 	err = env.Start(ctx, t)
 	if err != nil {
 		t.Errorf("Cant start broker or master: %s", err.Error())
-		return 
+		return
 	}
 
 	agentID := "agent1"
@@ -80,18 +94,18 @@ func TestInactiveAgent(t *testing.T) {
 		return
 	}
 
-	ctx, cf := context.WithTimeout(ctx, 60 * time.Second)
+	ctx, cf := context.WithTimeout(ctx, 60*time.Second)
 	defer cf()
 	startOperatorTopic := fmt.Sprintf("analytics/agents/%s/control/start", agentID)
 	result, err := mqtt.WaitForMQTTMessageReceived(ctx, startOperatorTopic, ".*", func(context.Context) error {
-		time.Sleep(time.Duration((agentPingInterval * 3 + 10) * float64(time.Second)))
+		time.Sleep(time.Duration((agentPingInterval*3 + 10) * float64(time.Second)))
 		operatorID := "op1"
 		pipelineID := "pipe1"
 		return utils.StartOperatorAtMaster(env, t, operatorID, pipelineID)
 	}, "localhost", env.BrokerPort, false)
 	if err != nil {
 		t.Error(err)
-		return 
+		return
 	}
 	if result.Error != nil {
 		t.Error(err)
@@ -100,74 +114,60 @@ func TestInactiveAgent(t *testing.T) {
 	assert.Equal(t, result.Received, false, "Master shall ignore the start command")
 }
 
-// Agent registers -> Timeout for stale operator 
+// Agent registers -> Timeout for stale operator
 // Start operator -> (should be deleted) -> start command with next sync
 // Stop operator -> (should be marked as started)  -> stop command with next sync
 func TestStaleOperators(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
 	var staleOperatorTimeout float64 = 5
-	var staleOperatorInterval float64 = 5 
+	var staleOperatorInterval float64 = 5
 
 	env, err := utils.NewEnv(ctx, t, 100, staleOperatorInterval, 100, staleOperatorTimeout, "stale", true)
 	if err != nil {
-		t.Errorf("Cant start env: %s", err.Error())
-		return 
+		t.Fatalf("cant start env: %s", err)
 	}
-	err = env.Start(ctx, t)
-	if err != nil {
-		t.Errorf("Cant start broker or master: %s", err.Error())
-		return 
+	if err = env.Start(ctx, t); err != nil {
+		t.Fatalf("cant start broker or master: %s", err)
 	}
 
 	agentID := "agent1"
-	err = utils.RegisterAgent(env, t, agentID)
-	if err != nil {
-		t.Errorf("Cant register agent: %s", err.Error())
-		return
+	if err = utils.RegisterAgent(env, t, agentID); err != nil {
+		t.Fatalf("cant register agent: %s", err)
 	}
 
 	startOperatorTopic := fmt.Sprintf("analytics/agents/%s/control/start", agentID)
-
 	operatorID := "op1"
 	pipelineID := "pipe1"
-	// We have to wait for the first start command message to arrive in mqtt topic so that 
-	// the message wont slip in when I test for the second start command below
+
 	result, err := mqtt.WaitForMQTTMessageReceived(ctx, startOperatorTopic, ".*", func(context.Context) error {
-		t.Log("Start operator")
-		err = utils.StartOperatorAtMaster(env, t, operatorID, pipelineID)
-		if err != nil {
-			return fmt.Errorf("Cant start operator: %s", err.Error())
-		}
-		return nil
+		t.Log("starting operator")
+		return utils.StartOperatorAtMaster(env, t, operatorID, pipelineID)
 	}, "localhost", env.BrokerPort, false)
 	if err != nil {
-		t.Error(err)
-		return 
+		t.Fatalf("waiting for first start command: %s", err)
 	}
 	if result.Error != nil {
-		t.Error(err)
-		return
+		t.Fatalf("first start command: %s", result.Error)
 	}
-	
-	ctx, cf := context.WithTimeout(ctx, 60 * time.Second)
-	defer cf()
+
+	wait := time.Duration((staleOperatorTimeout*2 + 10) * float64(time.Second))
+	t.Logf("waiting %s for operator state to go stale", wait)
+	time.Sleep(wait)
+
 	result, err = mqtt.WaitForMQTTMessageReceived(ctx, startOperatorTopic, ".*", func(context.Context) error {
-		wait := time.Duration((staleOperatorTimeout * 2 + 10) * float64(time.Second))
-		t.Log(fmt.Sprintf("Wait %s so that operator state is too old", wait))
-		time.Sleep(wait)
-		t.Log("Simulate incoming operator sync to trigger new start command")
-		err = utils.SendOperatorSync(env, t, operatorID, pipelineID)
-		return err
+		t.Log("sending operator sync to trigger re-start")
+		return utils.SendOperatorSync(env, t, operatorID, pipelineID)
 	}, "localhost", env.BrokerPort, false)
 	if err != nil {
-		t.Error(err)
-		return 
+		t.Fatalf("waiting for second start command: %s", err)
 	}
 	if result.Error != nil {
-		t.Error(err)
-		return
+		t.Fatalf("second start command: %s", result.Error)
 	}
-	assert.Equal(t, result.Received, true)
+
+	assert.True(t, result.Received)
 }
 
 // TODO Agent registers

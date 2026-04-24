@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 InfAI (CC SES)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package master
 
 import (
@@ -55,7 +71,7 @@ func (master *Master) checkAgent(id string) {
 		}
 
 		secondsSinceLast := time.Now().Sub(agent.Updated).Seconds()
-		logging.Logger.Debug(fmt.Sprintf("Last ping of agent %s was at %s - %f <=> %f", agent.Id, agent.Updated, secondsSinceLast,float64(master.TimeoutInactiveAgent)))
+		logging.Logger.Debug(fmt.Sprintf("Last ping of agent %s was at %s - %f <=> %f", agent.Id, agent.Updated, secondsSinceLast, float64(master.TimeoutInactiveAgent)))
 		if secondsSinceLast > float64(master.TimeoutInactiveAgent) {
 			if agent.Active == true {
 				logging.Logger.Debug(fmt.Sprintf("Agent %s not reachable -> mark unactive", id))
@@ -83,8 +99,8 @@ func (master *Master) RegisterAgent(agentConf agentLib.Configuration) error {
 	id := agentConf.Id
 
 	agent := agentLib.Agent{
-		Id:     id,
-		Active: true,
+		Id:      id,
+		Active:  true,
 		Updated: time.Now().UTC(),
 	}
 	ctx := context.Background()
