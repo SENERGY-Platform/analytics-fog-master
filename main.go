@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 InfAI (CC SES)
+ * Copyright 2026 InfAI (CC SES)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,30 +25,29 @@ import (
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 	"github.com/joho/godotenv"
 )
- 
- func main() {
-	 ec := 0
-	 defer func() {
-		 os.Exit(ec)
-	 }()
- 
-	 err := godotenv.Load()
-	 if err != nil {
-		 log.Print("Error loading .env file: ", err)
-	 }
- 
-	 config, err := config.NewConfig("")
-	 if err != nil {
-		 log.Print("Cant load config: ", err)
-		 ec = 1
-		 return
-	 }
-	 
-	 ctx := context.Background()
-	 err = lib.Run(ctx, os.Stdout, os.Stderr, *config)
-	 if err != nil {
-		 ec = 1
-		 return
-	 }
- }
- 
+
+func main() {
+	ec := 0
+	defer func() {
+		os.Exit(ec)
+	}()
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Print("Error loading .env file: ", err)
+	}
+
+	config, err := config.NewConfig("")
+	if err != nil {
+		log.Print("Cant load config: ", err)
+		ec = 1
+		return
+	}
+
+	ctx := context.Background()
+	err = lib.Run(ctx, os.Stdout, os.Stderr, *config)
+	if err != nil {
+		ec = 1
+		return
+	}
+}
