@@ -8,7 +8,6 @@ require (
 	github.com/SENERGY-Platform/analytics-fog-lib v1.1.26
 	github.com/SENERGY-Platform/go-service-base v0.13.0
 	github.com/SENERGY-Platform/go-service-base/util v1.1.0
-	github.com/SENERGY-Platform/go-service-base/watchdog v0.4.2
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/hahahannes/e2e-go-utils v1.2.16
 	github.com/joho/godotenv v1.5.1
