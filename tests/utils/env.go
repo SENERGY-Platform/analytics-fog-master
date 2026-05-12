@@ -26,8 +26,8 @@ import (
 	"time"
 
 	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
+	"github.com/SENERGY-Platform/analytics-fog-master/internal/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
 
 	"github.com/hahahannes/e2e-go-utils/lib/streaming/mqtt"
 )

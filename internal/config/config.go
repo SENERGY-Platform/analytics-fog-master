@@ -18,8 +18,7 @@ package config
 
 import (
 	"github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
-	srv_base "github.com/SENERGY-Platform/go-service-base/srv-base"
-	"github.com/y-du/go-log-level/level"
+	sbconfighdl "github.com/SENERGY-Platform/go-service-base/config-hdl"
 )
 
 type DataBaseConfig struct {
@@ -28,9 +27,9 @@ type DataBaseConfig struct {
 }
 
 type Config struct {
-	Broker                            mqtt.FogBrokerConfig
-	Logger                            srv_base.LoggerConfig `json:"logger" env_var:"LOGGER_CONFIG"`
-	DataDir                           string                `json:"data_dir" env_var:"DATA_DIR"`
+	Broker                            mqtt.FogBrokerConfig `json:"broker" env_var:"BROKER"`
+	Logger                            LoggerConfig         `json:"logger" env_var:"LOGGER_CONFIG"`
+	DataDir                           string               `json:"data_dir" env_var:"DATA_DIR"`
 	DataBase                          DataBaseConfig
 	AgentSyncIntervalSeconds          float64 `json:"agent_sync_interval" env_var:"AGENT_SYNC_INTERVAL"`
 	StaleOperatorCheckIntervalSeconds float64 `json:"stale_operator_check_interval" env_var:"STALE_OPERATOR_CHECK_INTERVAL"`
@@ -38,17 +37,15 @@ type Config struct {
 	TimeoutInactiveAgentSeconds       float64 `json:"timeout_inactive_agent" env_var:"TIMEOUT_INACTIVE_AGENT"`
 }
 
-func NewConfig(path string) (*Config, error) {
+type LoggerConfig struct {
+	Level string `json:"level" env_var:"LOGGER_LEVEL"`
+}
+
+func New(path string) (*Config, error) {
 	cfg := Config{
 		Broker: mqtt.FogBrokerConfig{
 			Port: "1883",
 			Host: "localhost",
-		},
-		Logger: srv_base.LoggerConfig{
-			Level:        level.Debug,
-			Utc:          true,
-			Microseconds: true,
-			Terminal:     true,
 		},
 		DataDir:                           "./data",
 		AgentSyncIntervalSeconds:          120,
@@ -61,6 +58,6 @@ func NewConfig(path string) (*Config, error) {
 		},
 	}
 
-	err := srv_base.LoadConfig(path, &cfg, nil, nil, nil)
+	err := sbconfighdl.Load(&cfg, nil, nil, nil, path)
 	return &cfg, err
 }

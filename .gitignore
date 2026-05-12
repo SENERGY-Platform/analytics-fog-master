@@ -9,3 +9,6 @@ docker-compose.local.yml
 *.sqlite3
 *.sqlite
 .vscode
+config.json
+go.work
+go.work.sum

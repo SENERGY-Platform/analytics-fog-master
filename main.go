@@ -18,12 +18,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/SENERGY-Platform/analytics-fog-master/internal/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -32,20 +32,17 @@ func main() {
 		os.Exit(ec)
 	}()
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Print("Error loading .env file: ", err)
-	}
+	config.ParseFlags()
 
-	conf, err := config.NewConfig("")
+	cfg, err := config.New(config.ConfPath)
 	if err != nil {
-		log.Print("Cant load config: ", err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		ec = 1
 		return
 	}
 
 	ctx := context.Background()
-	err = lib.Run(ctx, os.Stdout, os.Stderr, *conf)
+	err = lib.Run(ctx, os.Stdout, os.Stderr, *cfg)
 	if err != nil {
 		log.Printf("Error running: %s", err)
 		ec = 1

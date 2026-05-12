@@ -28,7 +28,7 @@ import (
 	"time"
 
 	mqttLib "github.com/SENERGY-Platform/analytics-fog-lib/lib/mqtt"
-	"github.com/SENERGY-Platform/analytics-fog-master/lib/config"
+	"github.com/SENERGY-Platform/analytics-fog-master/internal/config"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/controller"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/logging"
 	"github.com/SENERGY-Platform/analytics-fog-master/lib/master"
